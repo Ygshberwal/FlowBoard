@@ -41,7 +41,7 @@ export default function TaskModal({ onClose, defaultStatus, onCreated }: Props) 
     };
     if (form.description) payload.description = form.description;
     if (form.category) payload.category = form.category;
-    if (form.estimated_mins) payload.estimated_mins = form.estimated_mins;
+    if (form.estimated_mins !== undefined) payload.estimated_mins = form.estimated_mins;
     if (form.deadline) {
       const d = new Date(form.deadline);
       if (!isNaN(d.getTime())) payload.deadline = d.toISOString();
