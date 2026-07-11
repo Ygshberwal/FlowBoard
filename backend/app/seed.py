@@ -9,7 +9,26 @@ from datetime import datetime, date, timedelta, timezone
 from sqlalchemy import select, func
 from app.database import AsyncSessionLocal
 from app.models.task import Task
+from app.models.section import Section
 from app.models.habit import Habit, HabitStreak
+
+
+DEFAULT_SECTIONS = [
+    ("Today", 0),
+    ("This week", 1),
+    ("Ongoing", 2),
+    ("Pending", 3),
+    ("Free time", 4),
+]
+
+# Maps the legacy status on seed tasks to a default section name.
+STATUS_TO_SECTION = {
+    "today": "Today",
+    "week": "This week",
+    "ongoing": "Ongoing",
+    "pending": "Pending",
+    "freetime": "Free time",
+}
 
 
 HABITS = [
@@ -80,6 +99,21 @@ async def seed():
     async with AsyncSessionLocal() as session:
         habit_count = await session.scalar(select(func.count(Habit.id)))
         task_count = await session.scalar(select(func.count(Task.id)))
+        section_count = await session.scalar(select(func.count(Section.id)))
+
+        section_by_name: dict[str, Section] = {}
+        if section_count == 0:
+            print("Seeding sections...")
+            for name, position in DEFAULT_SECTIONS:
+                section = Section(id=uuid.uuid4(), name=name, position=position)
+                session.add(section)
+                section_by_name[name] = section
+            await session.flush()
+            print(f"  -> {len(DEFAULT_SECTIONS)} sections inserted.")
+        else:
+            existing = await session.execute(select(Section))
+            for section in existing.scalars().all():
+                section_by_name[section.name] = section
 
         if habit_count == 0:
             print("Seeding habits...")
@@ -96,7 +130,8 @@ async def seed():
         if task_count == 0:
             print("Seeding tasks...")
             for t in TASKS:
-                task = Task(id=uuid.uuid4(), **t)
+                section = section_by_name.get(STATUS_TO_SECTION.get(t["status"], ""))
+                task = Task(id=uuid.uuid4(), section_id=section.id if section else None, **t)
                 session.add(task)
             print(f"  → {len(TASKS)} tasks inserted.")
         else:

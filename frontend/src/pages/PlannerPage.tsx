@@ -1,5 +1,5 @@
-import TaskModule from "../components/tasks/TaskModule";
+import Board from "../components/tasks/Board";
 
 export default function PlannerPage() {
-  return <TaskModule />;
+  return <Board />;
 }

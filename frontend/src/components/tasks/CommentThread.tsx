@@ -43,24 +43,24 @@ export default function CommentThread({ task }: Props) {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] font-semibold text-slate-600">{c.author_name}</span>
-                  <span className="text-[10px] text-slate-400">{format(parseISO(c.created_at), "MMM d, h:mm a")}</span>
+                  <span className="text-[10px] font-semibold text-slate-600 dark:text-slate-200">{c.author_name}</span>
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500">{format(parseISO(c.created_at), "MMM d, h:mm a")}</span>
                 </div>
-                <p className="text-[10px] text-slate-500 mt-0.5 break-words">{c.body}</p>
+                <p className="text-[10px] text-slate-500 dark:text-slate-300 mt-0.5 break-words">{c.body}</p>
               </div>
             </div>
           ))
         )}
       </div>
 
-      <div className="flex items-center gap-1.5 bg-slate-50 rounded-md px-2 py-1.5">
+      <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800 rounded-md px-2 py-1.5">
         <input
           type="text"
           value={body}
           onChange={(e) => setBody(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Comment… Enter to post"
-          className="flex-1 bg-transparent text-[10px] text-slate-600 placeholder-slate-400 outline-none"
+          className="flex-1 bg-transparent text-[10px] text-slate-600 dark:text-slate-200 placeholder-slate-400 outline-none"
         />
         {addComment.isPending && <span className="text-[10px] text-slate-400">…</span>}
       </div>

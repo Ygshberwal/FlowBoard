@@ -18,9 +18,14 @@ async def task_counts(db: AsyncSession = Depends(get_db)):
 @router.get("", response_model=List[TaskOut])
 async def list_tasks(
     view: Optional[str] = Query(None),
+    section_id: Optional[uuid.UUID] = Query(None),
     db: AsyncSession = Depends(get_db),
 ):
-    return await task_service.get_tasks_by_view(db, view or "pending")
+    if section_id is not None:
+        return await task_service.get_tasks_by_section(db, section_id)
+    if view is not None:
+        return await task_service.get_tasks_by_view(db, view)
+    return await task_service.get_all_tasks(db)
 
 
 @router.post("", response_model=TaskOut, status_code=201)

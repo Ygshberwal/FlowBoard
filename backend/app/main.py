@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import get_settings
 from app.database import engine
 from app.redis_client import close_redis
-from app.routers import tasks, habits, analytics
+from app.routers import tasks, habits, analytics, sections
 
 settings = get_settings()
 
@@ -54,6 +54,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(sections.router)
 app.include_router(tasks.router)
 app.include_router(habits.router)
 app.include_router(analytics.router)

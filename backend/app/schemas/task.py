@@ -24,6 +24,7 @@ class TaskBase(BaseModel):
     title: str
     description: Optional[str] = None
     status: str = "pending"
+    section_id: Optional[uuid.UUID] = None
     priority: str = "medium"
     category: Optional[str] = None
     estimated_mins: Optional[int] = None
@@ -39,6 +40,7 @@ class TaskUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
     status: Optional[str] = None
+    section_id: Optional[uuid.UUID] = None
     priority: Optional[str] = None
     category: Optional[str] = None
     estimated_mins: Optional[int] = None

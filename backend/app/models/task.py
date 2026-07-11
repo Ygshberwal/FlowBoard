@@ -18,6 +18,11 @@ class Task(Base):
     title: Mapped[str] = mapped_column(Text, nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="pending")
+    section_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("sections.id", ondelete="CASCADE"),
+        nullable=True,
+    )
     priority: Mapped[str] = mapped_column(String(8), nullable=False, default="medium")
     category: Mapped[str | None] = mapped_column(Text, nullable=True)
     estimated_mins: Mapped[int | None] = mapped_column(Integer, nullable=True)
@@ -41,10 +46,15 @@ class Task(Base):
         order_by="TaskComment.created_at"
     )
 
+    section: Mapped["Section | None"] = relationship(
+        "Section", back_populates="tasks"
+    )
+
     __table_args__ = (
         Index("ix_tasks_status", "status"),
         Index("ix_tasks_deadline", "deadline"),
         Index("ix_tasks_done", "done"),
+        Index("ix_tasks_section_id", "section_id"),
     )
 
 

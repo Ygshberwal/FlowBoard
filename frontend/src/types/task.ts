@@ -14,6 +14,7 @@ export interface Task {
   title: string;
   description: string | null;
   status: TaskStatus;
+  section_id: string | null;
   priority: TaskPriority;
   category: string | null;
   estimated_mins: number | null;
@@ -29,6 +30,7 @@ export interface TaskCreate {
   title: string;
   description?: string;
   status?: TaskStatus;
+  section_id?: string | null;
   priority?: TaskPriority;
   category?: string;
   estimated_mins?: number;
@@ -40,6 +42,7 @@ export interface TaskUpdate {
   title?: string;
   description?: string;
   status?: TaskStatus;
+  section_id?: string | null;
   priority?: TaskPriority;
   category?: string;
   estimated_mins?: number;

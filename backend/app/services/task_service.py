@@ -66,6 +66,27 @@ async def get_tasks_by_view(db: AsyncSession, view: str) -> List[Task]:
     return list(result.scalars().all())
 
 
+async def get_tasks_by_section(db: AsyncSession, section_id: uuid.UUID) -> List[Task]:
+    stmt = (
+        select(Task)
+        .options(selectinload(Task.comments))
+        .where(Task.section_id == section_id)
+        .order_by(Task.created_at.desc())
+    )
+    result = await db.execute(stmt)
+    return list(result.scalars().all())
+
+
+async def get_all_tasks(db: AsyncSession) -> List[Task]:
+    stmt = (
+        select(Task)
+        .options(selectinload(Task.comments))
+        .order_by(Task.created_at.desc())
+    )
+    result = await db.execute(stmt)
+    return list(result.scalars().all())
+
+
 async def get_task_counts(db: AsyncSession) -> TaskCounts:
     today = _today_utc()
     now = _now_utc()

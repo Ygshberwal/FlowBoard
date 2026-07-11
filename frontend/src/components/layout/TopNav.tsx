@@ -2,6 +2,20 @@ import { NavLink } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { tasksApi } from "../../api/tasks";
 import type { TaskCounts } from "../../types/task";
+import ThemeToggle from "./ThemeToggle";
+
+const TABS = [
+  {
+    to: "/planner",
+    label: "Planner",
+    icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2",
+  },
+  {
+    to: "/habits",
+    label: "Habits",
+    icon: "M13 10V3L4 14h7v7l9-11h-7z",
+  },
+];
 
 export default function TopNav() {
   const { data: counts } = useQuery<TaskCounts>({
@@ -11,61 +25,48 @@ export default function TopNav() {
   });
 
   return (
-    <header className="h-10 flex-shrink-0 bg-white border-b border-slate-200 flex items-center px-4 gap-6 z-10">
+    <header className="h-14 flex-shrink-0 glass border-b border-white/60 dark:border-white/10 flex items-center px-5 gap-8 z-20">
       {/* Logo */}
-      <div className="flex items-center gap-1.5 mr-2">
-        <div className="w-5 h-5 rounded bg-indigo-600 flex items-center justify-center">
-          <span className="text-white text-[10px] font-bold">F</span>
+      <div className="flex items-center gap-2.5">
+        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-md shadow-indigo-500/30">
+          <span className="text-white text-sm font-extrabold">F</span>
         </div>
-        <span className="font-semibold text-slate-800 text-xs tracking-wide">FlowBoard</span>
+        <span className="font-extrabold text-slate-800 dark:text-white text-base tracking-tight">FlowBoard</span>
       </div>
 
       {/* Primary nav tabs */}
-      <nav className="flex items-center gap-1">
-        <NavLink
-          to="/planner"
-          className={({ isActive }) =>
-            `flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition-colors ${
-              isActive
-                ? "bg-indigo-50 text-indigo-700"
-                : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"
-            }`
-          }
-        >
-          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-          </svg>
-          Planner
-          {counts && counts.today > 0 && (
-            <span className="bg-indigo-500 text-white text-[10px] font-bold px-1 py-0 rounded-full leading-4 min-w-[16px] text-center">
-              {counts.today}
-            </span>
-          )}
-        </NavLink>
-
-        <NavLink
-          to="/habits"
-          className={({ isActive }) =>
-            `flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition-colors ${
-              isActive
-                ? "bg-indigo-50 text-indigo-700"
-                : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"
-            }`
-          }
-        >
-          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-          </svg>
-          Habits
-        </NavLink>
+      <nav className="flex items-center gap-1.5">
+        {TABS.map((tab) => (
+          <NavLink
+            key={tab.to}
+            to={tab.to}
+            className={({ isActive }) =>
+              `flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                isActive
+                  ? "bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-300 shadow-card ring-1 ring-slate-200/70 dark:ring-white/10"
+                  : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-white/60 dark:hover:bg-white/10"
+              }`
+            }
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d={tab.icon} />
+            </svg>
+            {tab.label}
+            {tab.to === "/planner" && counts && counts.today > 0 && (
+              <span className="bg-indigo-500 text-white text-[10px] font-bold px-1.5 py-0 rounded-full leading-4 min-w-[18px] text-center">
+                {counts.today}
+              </span>
+            )}
+          </NavLink>
+        ))}
       </nav>
 
-      {/* Spacer */}
       <div className="flex-1" />
 
-      {/* User avatar */}
+      {/* Theme toggle + avatar */}
       <div className="flex items-center gap-2">
-        <div className="w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center text-white text-[10px] font-semibold">
+        <ThemeToggle />
+        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white text-sm font-bold shadow-md shadow-indigo-500/30 ring-2 ring-white dark:ring-slate-800">
           Y
         </div>
       </div>
