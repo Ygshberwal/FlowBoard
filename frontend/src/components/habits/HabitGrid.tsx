@@ -72,8 +72,8 @@ function isLeapYear(year: number): boolean {
   return year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
 }
 
-// Backend encodes logged dates as month*100+day (1-based month)
-const mmddKey = (d: Date) => (d.getMonth() + 1) * 100 + d.getDate();
+const dateKey = (d: Date): string =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
 export default function HabitGrid({ habits, streaks, year }: Props) {
   const [selectedHabit, setSelectedHabit] = useState<string | null>(null);
@@ -100,7 +100,7 @@ export default function HabitGrid({ habits, streaks, year }: Props) {
     : habits;
 
   const loggedCountForDate = (d: Date): number => {
-    const key = mmddKey(d);
+    const key = dateKey(d);
     return activeHabits.filter((h) => (yearLogs[h.id] || []).includes(key)).length;
   };
 
@@ -120,7 +120,7 @@ export default function HabitGrid({ habits, streaks, year }: Props) {
     const count = loggedCountForDate(d);
     const dateStr = d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
     const names = activeHabits
-      .filter((h) => (yearLogs[h.id] || []).includes(mmddKey(d)))
+      .filter((h) => (yearLogs[h.id] || []).includes(dateKey(d)))
       .map((h) => h.name);
 
     t.style.display = "block";
@@ -297,11 +297,11 @@ export default function HabitGrid({ habits, streaks, year }: Props) {
                   const weekCells = cells.slice(wi * 7, wi * 7 + 7);
                   const pastCells = weekCells.filter((d): d is Date => !!d && d <= today);
                   const someLogged = pastCells.some((d) =>
-                    (yearLogs[habit.id] || []).includes(mmddKey(d))
+                    (yearLogs[habit.id] || []).includes(dateKey(d))
                   );
                   const allLogged =
                     pastCells.length > 0 &&
-                    pastCells.every((d) => (yearLogs[habit.id] || []).includes(mmddKey(d)));
+                    pastCells.every((d) => (yearLogs[habit.id] || []).includes(dateKey(d)));
                   const level = allLogged ? 4 : someLogged ? 2 : 0;
                   return (
                     <div

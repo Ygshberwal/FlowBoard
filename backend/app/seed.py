@@ -21,15 +21,6 @@ DEFAULT_SECTIONS = [
     ("Free time", 4),
 ]
 
-# Maps the legacy status on seed tasks to a default section name.
-STATUS_TO_SECTION = {
-    "today": "Today",
-    "week": "This week",
-    "ongoing": "Ongoing",
-    "pending": "Pending",
-    "freetime": "Free time",
-}
-
 
 HABITS = [
     {"name": "Wake up 6:30", "color": "#F97316", "sort_order": 0},
@@ -46,9 +37,9 @@ now = datetime.now(timezone.utc)
 
 TASKS = [
     {
+        "section_name": "Today",
         "title": "Plan weekly goals",
         "description": "Review last week and define top 3 priorities for the new week.",
-        "status": "today",
         "priority": "high",
         "category": "Planning",
         "estimated_mins": 30,
@@ -56,27 +47,27 @@ TASKS = [
         "done": False,
     },
     {
+        "section_name": "Ongoing",
         "title": "Morning workout routine",
         "description": "Complete 30 min HIIT session followed by stretching.",
-        "status": "ongoing",
         "priority": "medium",
         "category": "Health",
         "estimated_mins": 45,
         "done": False,
     },
     {
+        "section_name": "Pending",
         "title": "Read Clean Code chapter 5",
         "description": "Focus on formatting and naming conventions.",
-        "status": "pending",
         "priority": "medium",
         "category": "Learning",
         "estimated_mins": 60,
         "done": False,
     },
     {
+        "section_name": "This week",
         "title": "Submit project report",
         "description": "Finalize the Q2 summary and send to team lead.",
-        "status": "week",
         "priority": "high",
         "category": "Work",
         "estimated_mins": 90,
@@ -84,9 +75,9 @@ TASKS = [
         "done": False,
     },
     {
+        "section_name": "Free time",
         "title": "Watch documentary",
         "description": "Something relaxing — nature or science.",
-        "status": "freetime",
         "priority": "low",
         "category": "Leisure",
         "estimated_mins": 90,
@@ -123,17 +114,22 @@ async def seed():
                 await session.flush()
                 streak = HabitStreak(habit_id=habit.id)
                 session.add(streak)
-            print(f"  → {len(HABITS)} habits inserted.")
+            print(f"  -> {len(HABITS)} habits inserted.")
         else:
             print(f"  Habits already exist ({habit_count}), skipping.")
 
         if task_count == 0:
             print("Seeding tasks...")
             for t in TASKS:
-                section = section_by_name.get(STATUS_TO_SECTION.get(t["status"], ""))
-                task = Task(id=uuid.uuid4(), section_id=section.id if section else None, **t)
+                task_data = {k: v for k, v in t.items() if k != "section_name"}
+                section = section_by_name.get(t["section_name"])
+                task = Task(
+                    id=uuid.uuid4(),
+                    section_id=section.id if section else None,
+                    **task_data,
+                )
                 session.add(task)
-            print(f"  → {len(TASKS)} tasks inserted.")
+            print(f"  -> {len(TASKS)} tasks inserted.")
         else:
             print(f"  Tasks already exist ({task_count}), skipping.")
 

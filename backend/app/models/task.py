@@ -17,7 +17,6 @@ class Task(Base):
     )
     title: Mapped[str] = mapped_column(Text, nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
-    status: Mapped[str] = mapped_column(String(16), nullable=False, default="pending")
     section_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("sections.id", ondelete="CASCADE"),
@@ -51,7 +50,6 @@ class Task(Base):
     )
 
     __table_args__ = (
-        Index("ix_tasks_status", "status"),
         Index("ix_tasks_deadline", "deadline"),
         Index("ix_tasks_done", "done"),
         Index("ix_tasks_section_id", "section_id"),

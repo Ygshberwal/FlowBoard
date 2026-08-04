@@ -2,11 +2,6 @@ import apiClient from "./client";
 import type { Task, TaskCreate, TaskUpdate, TaskCounts, TaskComment } from "../types/task";
 
 export const tasksApi = {
-  list: async (view: string): Promise<Task[]> => {
-    const { data } = await apiClient.get<Task[]>(`/api/tasks?view=${view}`);
-    return data;
-  },
-
   counts: async (): Promise<TaskCounts> => {
     const { data } = await apiClient.get<TaskCounts>("/api/tasks/counts");
     return data;

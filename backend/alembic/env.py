@@ -14,6 +14,7 @@ import os
 import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from app.config import get_settings
 from app.database import Base
 from app.models import Task, TaskComment, Habit, HabitLog, HabitStreak
 
@@ -21,10 +22,7 @@ target_metadata = Base.metadata
 
 
 def get_url():
-    return os.getenv(
-        "DATABASE_URL",
-        "postgresql+asyncpg://flowboard:flowboard@postgres:5432/flowboard"
-    )
+    return get_settings().database_url
 
 
 def run_migrations_offline() -> None:

@@ -3,7 +3,7 @@ import uuid
 import json
 import calendar
 from datetime import date, datetime, timezone, timedelta
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_, extract
 from sqlalchemy.dialects.postgresql import insert as pg_insert
@@ -15,7 +15,23 @@ from app.schemas.habit import (
 )
 from app.redis_client import get_redis
 
-STREAK_TTL = 3600  # 1 hour
+STREAK_TTL = 3600
+STREAKS_CACHE_KEY = "streaks:all"
+
+
+async def _invalidate_streaks_cache() -> None:
+    redis = await get_redis()
+    await redis.delete(STREAKS_CACHE_KEY)
+
+
+def _streak_to_payload(row: HabitStreak) -> Dict[str, Any]:
+    return {
+        "habit_id": str(row.habit_id),
+        "current_streak": row.current_streak,
+        "longest_streak": row.longest_streak,
+        "last_logged": row.last_logged.isoformat() if row.last_logged else None,
+        "updated_at": row.updated_at.isoformat(),
+    }
 
 
 async def get_habits(db: AsyncSession) -> List[Habit]:
@@ -40,6 +56,7 @@ async def create_habit(db: AsyncSession, data: HabitCreate) -> Habit:
     db.add(streak)
     await db.flush()
     await db.refresh(habit)
+    await _invalidate_streaks_cache()
     return habit
 
 
@@ -90,29 +107,21 @@ async def toggle_log(
 
 async def get_logs_for_year(
     db: AsyncSession, year: int
-) -> Dict[str, List[int]]:
-    """Returns all logged dates for a year as {habit_id: ["YYYY-MM-DD", ...]}"""
-    from datetime import date as date_type
+) -> Dict[str, List[str]]:
     result = await db.execute(
         select(HabitLog.habit_id, HabitLog.logged_on)
         .where(extract("year", HabitLog.logged_on) == year)
         .order_by(HabitLog.logged_on)
     )
-    rows = result.all()
-    # Return day-of-year as string "YYYY-MM-DD" so the frontend can build the grid
-    logs: Dict[str, List[int]] = {}
-    for habit_id, logged_on in rows:
-        key = str(habit_id)
-        if key not in logs:
-            logs[key] = []
-        # Encode as MMDD integer so it's compact: month*100+day
-        logs[key].append(logged_on.month * 100 + logged_on.day)
+    logs: Dict[str, List[str]] = {}
+    for habit_id, logged_on in result.all():
+        logs.setdefault(str(habit_id), []).append(logged_on.isoformat())
     return logs
 
 
 async def get_logs_for_month(
     db: AsyncSession, year: int, month: int
-) -> Dict[str, List[int]]:
+) -> Dict[str, List[str]]:
     result = await db.execute(
         select(HabitLog.habit_id, HabitLog.logged_on)
         .where(
@@ -121,22 +130,24 @@ async def get_logs_for_month(
                 extract("month", HabitLog.logged_on) == month,
             )
         )
+        .order_by(HabitLog.logged_on)
     )
-    rows = result.all()
-
-    logs: Dict[str, List[int]] = {}
-    for habit_id, logged_on in rows:
-        key = str(habit_id)
-        if key not in logs:
-            logs[key] = []
-        logs[key].append(logged_on.day)
-
+    logs: Dict[str, List[str]] = {}
+    for habit_id, logged_on in result.all():
+        logs.setdefault(str(habit_id), []).append(logged_on.isoformat())
     return logs
 
 
-async def get_streaks(db: AsyncSession) -> List[HabitStreak]:
+async def get_streaks(db: AsyncSession) -> List[Dict[str, Any]]:
+    redis = await get_redis()
+    cached = await redis.get(STREAKS_CACHE_KEY)
+    if cached:
+        return json.loads(cached)
+
     result = await db.execute(select(HabitStreak))
-    return result.scalars().all()
+    payload = [_streak_to_payload(r) for r in result.scalars().all()]
+    await redis.setex(STREAKS_CACHE_KEY, STREAK_TTL, json.dumps(payload))
+    return payload
 
 
 async def _update_streak(db: AsyncSession, habit_id: uuid.UUID):
@@ -185,13 +196,7 @@ async def _update_streak(db: AsyncSession, habit_id: uuid.UUID):
         db.add(streak_row)
 
     await db.flush()
-
-    redis = await get_redis()
-    await redis.setex(
-        f"streak:{habit_id}",
-        STREAK_TTL,
-        json.dumps({"current": current, "longest": longest}),
-    )
+    await _invalidate_streaks_cache()
 
 
 def _calc_longest(sorted_desc_dates: list[date]) -> int:

@@ -1,4 +1,3 @@
-export type TaskStatus = "today" | "week" | "ongoing" | "pending" | "freetime";
 export type TaskPriority = "low" | "medium" | "high";
 
 export interface TaskComment {
@@ -13,7 +12,6 @@ export interface Task {
   id: string;
   title: string;
   description: string | null;
-  status: TaskStatus;
   section_id: string | null;
   priority: TaskPriority;
   category: string | null;
@@ -29,7 +27,6 @@ export interface Task {
 export interface TaskCreate {
   title: string;
   description?: string;
-  status?: TaskStatus;
   section_id?: string | null;
   priority?: TaskPriority;
   category?: string;
@@ -41,7 +38,6 @@ export interface TaskCreate {
 export interface TaskUpdate {
   title?: string;
   description?: string;
-  status?: TaskStatus;
   section_id?: string | null;
   priority?: TaskPriority;
   category?: string;
@@ -54,7 +50,4 @@ export interface TaskUpdate {
 export interface TaskCounts {
   today: number;
   week: number;
-  ongoing: number;
-  pending: number;
-  freetime: number;
 }

@@ -1,6 +1,7 @@
 import subprocess
 import sys
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -12,21 +13,32 @@ from app.routers import tasks, habits, analytics, sections
 
 settings = get_settings()
 
+BACKEND_ROOT = Path(__file__).resolve().parent.parent
 
-def run_migrations():
+
+def run_migrations() -> None:
     try:
         result = subprocess.run(
-            ["alembic", "upgrade", "head"],
+            [sys.executable, "-m", "alembic", "upgrade", "head"],
             capture_output=True,
             text=True,
-            cwd="/app",
+            cwd=str(BACKEND_ROOT),
         )
-        if result.returncode != 0:
-            print(f"Alembic error: {result.stderr}", file=sys.stderr)
-        else:
-            print("Migrations applied successfully.")
-    except Exception as e:
-        print(f"Migration failed: {e}", file=sys.stderr)
+    except FileNotFoundError as e:
+        raise RuntimeError(
+            "alembic executable not found in the active Python environment; "
+            "install requirements.txt before starting the app."
+        ) from e
+
+    if result.stdout:
+        print(result.stdout, file=sys.stdout)
+    if result.returncode != 0:
+        print(result.stderr, file=sys.stderr)
+        raise RuntimeError(
+            f"alembic upgrade head failed (exit {result.returncode}); "
+            "aborting startup so requests never hit a broken schema."
+        )
+    print("Migrations applied successfully.")
 
 
 @asynccontextmanager

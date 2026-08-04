@@ -1,7 +1,7 @@
 from __future__ import annotations
 import uuid
 from datetime import date, datetime, timezone, timedelta
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_, or_
 from sqlalchemy.orm import selectinload
@@ -18,6 +18,11 @@ def _now_utc() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def _utc_day_bounds(day: date) -> Tuple[datetime, datetime]:
+    start = datetime(day.year, day.month, day.day, tzinfo=timezone.utc)
+    return start, start + timedelta(days=1)
+
+
 async def _load_task(db: AsyncSession, task_id: uuid.UUID) -> Optional[Task]:
     """Always load task with comments eagerly."""
     result = await db.execute(
@@ -32,34 +37,31 @@ async def get_tasks_by_view(db: AsyncSession, view: str) -> List[Task]:
     today = _today_utc()
     now = _now_utc()
     week_end = now + timedelta(days=7)
+    day_start, day_end = _utc_day_bounds(today)
 
     stmt = select(Task).options(selectinload(Task.comments))
 
     if view == "today":
         stmt = stmt.where(
             and_(
-                Task.done == False,
+                Task.done.is_(False),
                 or_(
                     Task.scheduled_for == today,
-                    func.date(Task.deadline) == today,
+                    and_(Task.deadline >= day_start, Task.deadline < day_end),
                 )
             )
         )
     elif view == "week":
         stmt = stmt.where(
             and_(
-                Task.done == False,
+                Task.done.is_(False),
                 Task.deadline.isnot(None),
                 Task.deadline >= now,
                 Task.deadline <= week_end,
             )
         )
-    elif view == "ongoing":
-        stmt = stmt.where(Task.status == "ongoing")
-    elif view == "pending":
-        stmt = stmt.where(Task.status == "pending")
-    elif view == "freetime":
-        stmt = stmt.where(Task.status == "freetime")
+    else:
+        return []
 
     stmt = stmt.order_by(Task.created_at.desc())
     result = await db.execute(stmt)
@@ -91,14 +93,15 @@ async def get_task_counts(db: AsyncSession) -> TaskCounts:
     today = _today_utc()
     now = _now_utc()
     week_end = now + timedelta(days=7)
+    day_start, day_end = _utc_day_bounds(today)
 
     today_count = await db.scalar(
         select(func.count()).select_from(Task).where(
             and_(
-                Task.done == False,
+                Task.done.is_(False),
                 or_(
                     Task.scheduled_for == today,
-                    func.date(Task.deadline) == today,
+                    and_(Task.deadline >= day_start, Task.deadline < day_end),
                 )
             )
         )
@@ -106,29 +109,17 @@ async def get_task_counts(db: AsyncSession) -> TaskCounts:
     week_count = await db.scalar(
         select(func.count()).select_from(Task).where(
             and_(
-                Task.done == False,
+                Task.done.is_(False),
                 Task.deadline.isnot(None),
                 Task.deadline >= now,
                 Task.deadline <= week_end,
             )
         )
     )
-    ongoing_count = await db.scalar(
-        select(func.count()).select_from(Task).where(Task.status == "ongoing")
-    )
-    pending_count = await db.scalar(
-        select(func.count()).select_from(Task).where(Task.status == "pending")
-    )
-    freetime_count = await db.scalar(
-        select(func.count()).select_from(Task).where(Task.status == "freetime")
-    )
 
     return TaskCounts(
         today=today_count or 0,
         week=week_count or 0,
-        ongoing=ongoing_count or 0,
-        pending=pending_count or 0,
-        freetime=freetime_count or 0,
     )
 
 

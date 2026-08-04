@@ -31,7 +31,7 @@ export interface HabitStreak {
 }
 
 export interface HabitLogsResponse {
-  logs: Record<string, number[]>;
+  logs: Record<string, string[]>;
 }
 
 export interface HabitAnalyticsItem {

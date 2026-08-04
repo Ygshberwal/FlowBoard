@@ -6,7 +6,6 @@ from typing import List
 class Settings(BaseSettings):
     database_url: str = "postgresql+asyncpg://flowboard:flowboard@postgres:5432/flowboard"
     redis_url: str = "redis://redis:6379/0"
-    secret_key: str = "change-me-in-production"
     cors_origins: str = "http://localhost:5173,http://localhost:80"
 
     @property

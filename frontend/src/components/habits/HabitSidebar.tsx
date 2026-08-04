@@ -4,7 +4,7 @@ import { useHabitStore } from "../../store/habitStore";
 interface Props {
   habits: Habit[];
   streaks: HabitStreak[];
-  logs: Record<string, number[]>;
+  logs: Record<string, string[]>;
   onAddClick: () => void;
 }
 

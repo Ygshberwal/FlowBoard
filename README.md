@@ -43,7 +43,6 @@ Create a local environment file at `backend/.env`:
 ```env
 DATABASE_URL=postgresql+asyncpg://flowboard:flowboard@localhost:5432/flowboard
 REDIS_URL=redis://localhost:6379/0
-SECRET_KEY=change-me-in-production
 CORS_ORIGINS=http://localhost:5173,http://localhost:80
 ```
 

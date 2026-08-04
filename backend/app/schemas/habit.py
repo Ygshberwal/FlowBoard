@@ -46,7 +46,7 @@ class HabitStreakOut(BaseModel):
 
 
 class HabitLogsResponse(BaseModel):
-    logs: Dict[str, List[int]]
+    logs: Dict[str, List[str]]
 
 
 class HabitAnalyticsItem(BaseModel):

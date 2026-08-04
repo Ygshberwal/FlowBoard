@@ -1,14 +1,14 @@
 import { useRef, useEffect, useCallback } from "react";
 import type { Habit } from "../../types/habit";
-import { useHabitStore } from "../../store/habitStore";
+import { useHabitStore, isoDate } from "../../store/habitStore";
 
 interface Props {
   habits: Habit[];
-  logs: Record<string, number[]>;         // merged (server + optimistic)
-  serverLogs: Record<string, number[]>;   // server only — for toggle direction
+  logs: Record<string, string[]>;
+  serverLogs: Record<string, string[]>;
   year: number;
   month: number;
-  onToggled?: () => void;                 // called after successful toggle to refetch
+  onToggled?: () => void;
 }
 
 function getDaysInMonth(year: number, month: number): number {
@@ -97,14 +97,13 @@ export default function RadialCanvas({ habits, logs, serverLogs, year, month, on
       ctx.stroke();
     }
 
-    // Habit rings
     habits.forEach((habit, hi) => {
-      const habitLogs = logs[habit.id] || [];
+      const habitLogs = new Set(logs[habit.id] || []);
       const r1 = innerRadius + hi * ringWidth + 1.5 * s;
       const r2 = innerRadius + (hi + 1) * ringWidth - 1.5 * s;
 
       for (let d = 1; d <= totalDays; d++) {
-        const isLogged  = habitLogs.includes(d);
+        const isLogged  = habitLogs.has(isoDate(year, month, d));
         const isToday   = d === todayDay;
         const isFuture  = d > maxAllowedDay;
 
@@ -257,7 +256,7 @@ export default function RadialCanvas({ habits, logs, serverLogs, year, month, on
       if (!habit) { tooltip.style.display = "none"; return; }
 
       const isFuture = hit.day > maxAllowedDay;
-      const isDone   = (logs[habit.id] || []).includes(hit.day);
+      const isDone   = (logs[habit.id] || []).includes(isoDate(year, month, hit.day));
 
       tooltip.style.display = "block";
       tooltip.style.left = `${e.clientX + 14}px`;

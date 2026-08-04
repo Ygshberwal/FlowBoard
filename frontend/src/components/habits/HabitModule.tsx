@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { habitsApi } from "../../api/habits";
-import { useHabitStore } from "../../store/habitStore";
+import { useHabitStore, isoDate } from "../../store/habitStore";
 import type { Habit, HabitStreak, HabitLogsResponse } from "../../types/habit";
 import RadialCanvas from "./RadialCanvas";
 import AddHabitForm from "./AddHabitForm";
@@ -41,17 +41,20 @@ export default function HabitModule() {
     queryFn: habitsApi.getStreaks,
   });
 
-  // Merge server logs with optimistic local logs
-  const serverLogs: Record<string, number[]> = logsData?.logs || {};
-  const mergedLogs: Record<string, number[]> = { ...serverLogs };
+  const serverLogs: Record<string, string[]> = logsData?.logs || {};
+  const mergedLogs: Record<string, string[]> = { ...serverLogs };
   Object.entries(localLogs).forEach(([key, isDone]) => {
-    const [habitId, dayStr] = key.split("-");
-    const day = Number(dayStr);
+    const sep = key.indexOf("::");
+    if (sep < 0) return;
+    const habitId = key.slice(0, sep);
+    const dateStr = key.slice(sep + 2);
     if (!mergedLogs[habitId]) mergedLogs[habitId] = [...(serverLogs[habitId] || [])];
     if (isDone) {
-      if (!mergedLogs[habitId].includes(day)) mergedLogs[habitId] = [...mergedLogs[habitId], day];
+      if (!mergedLogs[habitId].includes(dateStr)) {
+        mergedLogs[habitId] = [...mergedLogs[habitId], dateStr];
+      }
     } else {
-      mergedLogs[habitId] = mergedLogs[habitId].filter((d) => d !== day);
+      mergedLogs[habitId] = mergedLogs[habitId].filter((d) => d !== dateStr);
     }
   });
 

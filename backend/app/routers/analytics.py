@@ -35,7 +35,7 @@ async def task_analytics(db: AsyncSession = Depends(get_db)):
     by_priority = {row.priority: row.cnt for row in priority_result.all()}
 
     total = await db.scalar(select(func.count(Task.id)))
-    done = await db.scalar(select(func.count(Task.id)).where(Task.done == True))
+    done = await db.scalar(select(func.count(Task.id)).where(Task.done.is_(True)))
 
     return {
         "total": total or 0,
