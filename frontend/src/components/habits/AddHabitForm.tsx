@@ -52,8 +52,8 @@ export default function AddHabitForm({ onClose, habit }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden">
+        <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
           <h3 className="text-sm font-semibold text-slate-800">
             {isEdit ? "Edit Habit" : "New Habit"}
           </h3>
@@ -71,7 +71,7 @@ export default function AddHabitForm({ onClose, habit }: Props) {
             placeholder="Habit name *"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-300 text-slate-800 placeholder-slate-400"
+            className="w-full text-sm border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-300 text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 bg-white dark:bg-slate-800"
             required
           />
 
@@ -80,7 +80,7 @@ export default function AddHabitForm({ onClose, habit }: Props) {
             placeholder="Category (optional)"
             value={category}
             onChange={(e) => setCategory(e.target.value)}
-            className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-300 text-slate-700 placeholder-slate-400"
+            className="w-full text-sm border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-300 text-slate-700 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 bg-white dark:bg-slate-800"
           />
 
           <div>
@@ -99,14 +99,14 @@ export default function AddHabitForm({ onClose, habit }: Props) {
               ))}
             </div>
             <div className="flex items-center gap-2 mt-2">
-              <label className="text-xs text-slate-500">Custom:</label>
+              <label className="text-xs text-slate-500 dark:text-slate-400">Custom:</label>
               <input
                 type="color"
                 value={color}
                 onChange={(e) => setColor(e.target.value)}
                 className="w-7 h-7 rounded cursor-pointer border-0 bg-transparent"
               />
-              <span className="text-xs text-slate-400 font-mono">{color}</span>
+              <span className="text-xs text-slate-400 dark:text-slate-300 font-mono">{color}</span>
             </div>
           </div>
 
@@ -114,7 +114,7 @@ export default function AddHabitForm({ onClose, habit }: Props) {
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-3 py-2 text-xs font-medium rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors"
+              className="flex-1 px-3 py-2 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
             >
               Cancel
             </button>

@@ -1,3 +1,41 @@
+# For me
+
+## Run FlowBoard locally
+1. Start backend
+```bash
+cd ~/Downloads/FlowBoard/backend
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+createdb flowboard
+.venv/bin/python -m alembic upgrade head
+.venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+Leave this terminal running.
+
+2. Start frontend
+Open a second terminal:
+```bash
+cd ~/Downloads/FlowBoard/frontend
+npm install
+npm run dev -- --host
+```
+
+3. Access the app
+Frontend: http://localhost:5173
+Backend health: http://localhost:8000/api/health
+
+4. If PostgreSQL / Redis are not running
+```bash
+brew services start postgresql@17
+brew services start redis
+```
+
+### For me ends
+---
+---
+
+
 # FlowBoard — Step-by-Step Playbook
 
 Compact, ordered tasks to go from a fresh clone to a running app, run tests,

@@ -11,7 +11,7 @@ export default function AnalyticsDashboard({ year, month }: Props) {
   });
 
   if (isLoading || !data) {
-    return <div className="flex-1 flex items-center justify-center text-slate-400 text-xs">Loading…</div>;
+    return <div className="flex-1 flex items-center justify-center text-slate-400 dark:text-slate-500 text-xs">Loading…</div>;
   }
 
   const totalCompletions = data.habits.reduce((acc, h) => acc + h.logged_days, 0);
@@ -37,15 +37,15 @@ export default function AnalyticsDashboard({ year, month }: Props) {
       {/* Per-habit bars */}
       <div className="space-y-2">
         {data.habits.map((habit) => (
-          <div key={habit.habit_id} className="bg-white rounded-lg border border-slate-100 px-3 py-2">
+          <div key={habit.habit_id} className="bg-white dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-slate-700 px-3 py-2">
             <div className="flex items-center justify-between mb-1.5">
               <div className="flex items-center gap-1.5">
                 <div className="w-2 h-2 rounded-full" style={{ backgroundColor: habit.color }} />
-                <span className="text-xs font-medium text-slate-600">{habit.name}</span>
+                <span className="text-xs font-medium text-slate-600 dark:text-slate-200">{habit.name}</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-[10px] text-slate-400">{habit.logged_days}/{habit.total_days}d</span>
-                <span className="text-xs font-semibold text-slate-600 w-8 text-right">{habit.completion_pct}%</span>
+                <span className="text-[10px] text-slate-400 dark:text-slate-500">{habit.logged_days}/{habit.total_days}d</span>
+                <span className="text-xs font-semibold text-slate-600 dark:text-slate-200 w-8 text-right">{habit.completion_pct}%</span>
               </div>
             </div>
             <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">

@@ -140,7 +140,7 @@ export default function HabitGrid({ habits, streaks, year }: Props) {
 
   if (isLoading) {
     return (
-      <div className="flex-1 flex items-center justify-center text-slate-400 text-xs">
+      <div className="flex-1 flex items-center justify-center text-slate-400 dark:text-slate-500 text-xs">
         Loading year data…
       </div>
     );
@@ -159,7 +159,7 @@ export default function HabitGrid({ habits, streaks, year }: Props) {
           className={`text-[11px] px-2.5 py-1 rounded-full font-medium border transition-colors ${
             selectedHabit === null
               ? "bg-indigo-600 text-white border-indigo-600"
-              : "bg-white text-slate-500 border-slate-200 hover:border-slate-300"
+              : "bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
           }`}
         >
           All habits
@@ -171,7 +171,7 @@ export default function HabitGrid({ habits, streaks, year }: Props) {
             className={`flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full font-medium border transition-colors ${
               selectedHabit === h.id
                 ? "text-white border-transparent"
-                : "bg-white text-slate-500 border-slate-200 hover:border-slate-300"
+                : "bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
             }`}
             style={selectedHabit === h.id ? { backgroundColor: h.color, borderColor: h.color } : {}}
           >
@@ -196,7 +196,7 @@ export default function HabitGrid({ habits, streaks, year }: Props) {
                 <div
                   key={wi}
                   style={{ width: COL_W }}
-                  className="flex-shrink-0 text-[10px] text-slate-400 font-medium"
+                  className="flex-shrink-0 text-[10px] text-slate-400 dark:text-slate-500 font-medium"
                 >
                   {monthLabel ? monthLabel.label : ""}
                 </div>
@@ -212,7 +212,7 @@ export default function HabitGrid({ habits, streaks, year }: Props) {
                 <div
                   key={i}
                   style={{ height: CELL }}
-                  className="text-[9px] text-slate-400 flex items-center justify-end pr-1"
+                  className="text-[9px] text-slate-400 dark:text-slate-500 flex items-center justify-end pr-1"
                 >
                   {label}
                 </div>
@@ -272,7 +272,7 @@ export default function HabitGrid({ habits, streaks, year }: Props) {
 
       {/* Per-habit stat rows */}
       <div className="space-y-2">
-        <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{year} Summary</h3>
+            <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{year} Summary</h3>
         {habits.map((habit) => {
           const total  = totalDaysInYear(habit.id);
           const streak = streakMap[habit.id];
@@ -282,14 +282,14 @@ export default function HabitGrid({ habits, streaks, year }: Props) {
               key={habit.id}
               onClick={() => setSelectedHabit(selectedHabit === habit.id ? null : habit.id)}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border cursor-pointer transition-colors ${
-                selectedHabit === habit.id
-                  ? "border-transparent"
-                  : "bg-white border-slate-100 hover:border-slate-200"
-              }`}
+                  selectedHabit === habit.id
+                    ? "border-transparent"
+                    : "bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 hover:border-slate-200 dark:hover:border-slate-600"
+                }`}
               style={selectedHabit === habit.id ? { backgroundColor: habit.color + "15", borderColor: habit.color + "40" } : {}}
             >
               <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: habit.color }} />
-              <span className="text-xs font-medium text-slate-700 w-32 truncate">{habit.name}</span>
+              <span className="text-xs font-medium text-slate-700 dark:text-slate-200 w-32 truncate">{habit.name}</span>
 
               {/* Mini year bar — one segment per week */}
               <div className="flex gap-[1px] flex-1 overflow-hidden">
@@ -313,7 +313,7 @@ export default function HabitGrid({ habits, streaks, year }: Props) {
                 })}
               </div>
 
-              <span className="text-[10px] text-slate-400 w-16 text-right flex-shrink-0">
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 w-16 text-right flex-shrink-0">
                 {total} days · {pct}%
               </span>
               {streak && streak.current_streak > 0 && (

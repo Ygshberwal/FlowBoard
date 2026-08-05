@@ -63,26 +63,26 @@ export default function HabitModule() {
   streaks.forEach((s) => (streakMap[s.habit_id] = s));
 
   return (
-    <div className="flex flex-col h-full bg-slate-50">
+    <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-900">
       {/* Top control bar */}
-      <div className="flex-shrink-0 bg-white border-b border-slate-200 px-4 h-9 flex items-center gap-3">
+      <div className="flex-shrink-0 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-4 h-9 flex items-center gap-3">
         {/* Month nav */}
         <div className="flex items-center gap-1">
-          <button onClick={prevMonth} className="w-5 h-5 rounded hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 text-sm transition-colors">‹</button>
-          <span className="text-xs font-semibold text-slate-700 w-20 text-center">{MONTH_NAMES[viewMonth]} {viewYear}</span>
-          <button onClick={nextMonth} className="w-5 h-5 rounded hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 text-sm transition-colors">›</button>
+          <button onClick={prevMonth} className="w-5 h-5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-300 hover:text-slate-600 dark:hover:text-slate-100 text-sm transition-colors">‹</button>
+          <span className="text-xs font-semibold text-slate-700 dark:text-slate-200 w-20 text-center">{MONTH_NAMES[viewMonth]} {viewYear}</span>
+          <button onClick={nextMonth} className="w-5 h-5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-300 hover:text-slate-600 dark:hover:text-slate-100 text-sm transition-colors">›</button>
         </div>
 
-        <div className="w-px h-4 bg-slate-200" />
+        <div className="w-px h-4 bg-slate-200 dark:bg-slate-700" />
 
         {/* Tracker / Analytics toggle */}
-        <div className="flex items-center gap-0.5 bg-slate-100 rounded-md p-0.5">
+        <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-slate-700 rounded-md p-0.5">
           {(["tracker", "grid", "analytics"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={`px-2.5 py-0.5 text-[11px] font-medium rounded transition-colors capitalize ${
-                activeTab === tab ? "bg-white text-slate-700 shadow-sm" : "text-slate-400 hover:text-slate-600"
+                activeTab === tab ? "bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 shadow-sm" : "text-slate-400 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
               }`}
             >
               {tab}
@@ -106,7 +106,7 @@ export default function HabitModule() {
 
       {/* Horizontal habit strip */}
       {habits.length > 0 && (
-        <div className="flex-shrink-0 bg-white border-b border-slate-100 px-4 py-2 flex items-center gap-2 overflow-x-auto no-scrollbar">
+        <div className="flex-shrink-0 bg-white dark:bg-slate-800 border-b border-slate-100 dark:border-slate-700 px-4 py-2 flex items-center gap-2 overflow-x-auto no-scrollbar">
           {habits.map((habit) => {
             const logged = (mergedLogs[habit.id] || []).length;
             const pct = Math.round((logged / daysInMonth) * 100);
@@ -165,13 +165,13 @@ function HabitChip({
   onDelete: () => void;
 }) {
   return (
-    <div className="group relative flex items-center gap-1.5 flex-shrink-0 bg-slate-50 rounded-lg px-2.5 py-1.5 border border-slate-100 hover:border-slate-200 transition-colors">
+    <div className="group relative flex items-center gap-1.5 flex-shrink-0 bg-slate-50 dark:bg-slate-800 rounded-lg px-2.5 py-1.5 border border-slate-100 dark:border-slate-700 hover:border-slate-200 dark:hover:border-slate-600 transition-colors">
       <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: habit.color }} />
-      <span className="text-[11px] font-medium text-slate-600 whitespace-nowrap">{habit.name}</span>
+      <span className="text-[11px] font-medium text-slate-600 dark:text-slate-200 whitespace-nowrap">{habit.name}</span>
       <div className="w-12 h-1 bg-slate-200 rounded-full overflow-hidden">
         <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, backgroundColor: habit.color }} />
       </div>
-      <span className="text-[10px] text-slate-400 font-medium">{pct}%</span>
+      <span className="text-[10px] text-slate-400 dark:text-slate-300 font-medium">{pct}%</span>
       {streak > 0 && (
         <span className="text-[10px] text-orange-500 font-semibold">🔥{streak}</span>
       )}
@@ -179,7 +179,7 @@ function HabitChip({
       <button
         onClick={(e) => { e.stopPropagation(); onEdit(); }}
         title="Edit habit"
-        className="opacity-0 group-hover:opacity-100 transition-opacity ml-0.5 w-4 h-4 rounded-full bg-slate-100 hover:bg-indigo-100 flex items-center justify-center flex-shrink-0"
+        className="opacity-0 group-hover:opacity-100 transition-opacity ml-0.5 w-4 h-4 rounded-full bg-slate-100 dark:bg-slate-700 hover:bg-indigo-100 dark:hover:bg-indigo-900 flex items-center justify-center flex-shrink-0"
       >
         <svg className="w-2.5 h-2.5 text-slate-400 hover:text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 012.828 2.828L11.828 15.828a2 2 0 01-1.414.586H9v-2a2 2 0 01.586-1.414z" />
@@ -189,7 +189,7 @@ function HabitChip({
       <button
         onClick={(e) => { e.stopPropagation(); onDelete(); }}
         title="Delete habit"
-        className="opacity-0 group-hover:opacity-100 transition-opacity w-4 h-4 rounded-full bg-red-100 hover:bg-red-200 flex items-center justify-center flex-shrink-0"
+        className="opacity-0 group-hover:opacity-100 transition-opacity w-4 h-4 rounded-full bg-red-100 dark:bg-transparent hover:bg-red-200 dark:hover:bg-red-700 flex items-center justify-center flex-shrink-0"
       >
         <svg className="w-2.5 h-2.5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />

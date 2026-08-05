@@ -280,7 +280,7 @@ export default function RadialCanvas({ habits, logs, serverLogs, year, month, on
     <div className="flex flex-col h-full">
       {/* Hint */}
       <div className="flex-shrink-0 flex items-center justify-center pt-2 pb-1 gap-3">
-        <span className="text-[10px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
+        <span className="text-[10px] text-slate-400 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded-full">
           Click a ring segment to mark a habit done · Future days are disabled
         </span>
       </div>
@@ -303,7 +303,7 @@ export default function RadialCanvas({ habits, logs, serverLogs, year, month, on
           {habits.map((h, i) => (
             <div key={h.id} className="flex items-center gap-1">
               <div className="w-2 h-2 rounded-full" style={{ backgroundColor: h.color }} />
-              <span className="text-[10px] text-slate-500">{i + 1}. {h.name}</span>
+              <span className="text-[10px] text-slate-500 dark:text-slate-300">{i + 1}. {h.name}</span>
             </div>
           ))}
         </div>
