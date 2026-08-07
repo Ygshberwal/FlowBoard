@@ -15,6 +15,11 @@ class Habit(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
     name: Mapped[str] = mapped_column(Text, nullable=False)
     color: Mapped[str] = mapped_column(String(7), nullable=False, default="#1D9E75")
     category: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -30,6 +35,11 @@ class Habit(Base):
     streak: Mapped["HabitStreak | None"] = relationship(
         "HabitStreak", back_populates="habit",
         cascade="all, delete-orphan", uselist=False
+    )
+    owner: Mapped["User"] = relationship("User")
+
+    __table_args__ = (
+        Index("ix_habits_user_id", "user_id"),
     )
 
 

@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { tasksApi } from "../../api/tasks";
 import type { TaskCounts } from "../../types/task";
 import ThemeToggle from "./ThemeToggle";
+import UserMenu from "./UserMenu";
 
 const TABS = [
   {
@@ -66,9 +67,7 @@ export default function TopNav() {
       {/* Theme toggle + avatar */}
       <div className="flex items-center gap-2">
         <ThemeToggle />
-        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white text-sm font-bold shadow-md shadow-indigo-500/30 ring-2 ring-white dark:ring-slate-800">
-          Y
-        </div>
+        <UserMenu />
       </div>
     </header>
   );

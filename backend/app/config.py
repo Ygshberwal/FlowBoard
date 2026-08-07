@@ -7,6 +7,11 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+asyncpg://flowboard:flowboard@postgres:5432/flowboard"
     redis_url: str = "redis://redis:6379/0"
     cors_origins: str = "http://localhost:5173,http://localhost:80"
+    jwt_secret: str = "change-me-in-dev-only"
+    jwt_algorithm: str = "HS256"
+    access_token_minutes: int = 15
+    refresh_token_days: int = 7
+    upload_dir: str = "uploads"
 
     @property
     def cors_origins_list(self) -> List[str]:

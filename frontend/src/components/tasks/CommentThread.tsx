@@ -1,6 +1,7 @@
 import { useState, KeyboardEvent } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { tasksApi } from "../../api/tasks";
+import { useAuthStore } from "../../store/authStore";
 import type { Task } from "../../types/task";
 import { format, parseISO } from "date-fns";
 
@@ -16,9 +17,11 @@ const getColor = (name: string) => COLORS[name.charCodeAt(0) % COLORS.length];
 export default function CommentThread({ task }: Props) {
   const [body, setBody] = useState("");
   const qc = useQueryClient();
+  const user = useAuthStore((s) => s.user);
 
   const addComment = useMutation({
-    mutationFn: (text: string) => tasksApi.addComment(task.id, text),
+    mutationFn: (text: string) =>
+      tasksApi.addComment(task.id, text, user?.username ?? "You"),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["task", task.id] }); setBody(""); },
   });
 

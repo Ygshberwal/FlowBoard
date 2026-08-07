@@ -5,15 +5,17 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.config import get_settings
 from app.database import engine
 from app.redis_client import close_redis
-from app.routers import tasks, habits, analytics, sections
+from app.routers import tasks, habits, analytics, sections, auth
 
 settings = get_settings()
 
 BACKEND_ROOT = Path(__file__).resolve().parent.parent
+UPLOAD_ROOT = BACKEND_ROOT / settings.upload_dir
 
 
 def run_migrations() -> None:
@@ -41,11 +43,14 @@ def run_migrations() -> None:
     print("Migrations applied successfully.")
 
 
+def ensure_upload_dirs() -> None:
+    (UPLOAD_ROOT / "avatars").mkdir(parents=True, exist_ok=True)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     run_migrations()
-    from app.seed import seed
-    await seed()
+    ensure_upload_dirs()
     yield
     await close_redis()
     await engine.dispose()
@@ -66,6 +71,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+ensure_upload_dirs()
+app.mount(
+    "/api/uploads",
+    StaticFiles(directory=str(UPLOAD_ROOT)),
+    name="uploads",
+)
+
+app.include_router(auth.router)
 app.include_router(sections.router)
 app.include_router(tasks.router)
 app.include_router(habits.router)

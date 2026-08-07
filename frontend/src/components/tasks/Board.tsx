@@ -3,6 +3,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { sectionsApi } from "../../api/sections";
 import { tasksApi } from "../../api/tasks";
 import { useTaskStore } from "../../store/taskStore";
+import { useAuthStore } from "../../store/authStore";
+import { displayName } from "../../lib/avatar";
 import type { SectionWithTasks } from "../../types/section";
 import { format } from "date-fns";
 import SectionColumn from "./SectionColumn";
@@ -11,6 +13,7 @@ import TaskDetailPanel from "./TaskDetailPanel";
 export default function Board() {
   const qc = useQueryClient();
   const { selectedTaskId } = useTaskStore();
+  const user = useAuthStore((s) => s.user);
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
   const [addingSection, setAddingSection] = useState(false);
@@ -133,7 +136,7 @@ export default function Board() {
       {/* Header */}
       <div className="flex-shrink-0 glass border-b border-white/60 dark:border-white/10 px-6 py-3.5 flex items-center gap-4">
         <div>
-          <h2 className="text-lg font-extrabold text-slate-800 dark:text-white leading-tight">{greeting}, Yogesh</h2>
+          <h2 className="text-lg font-extrabold text-slate-800 dark:text-white leading-tight">{greeting}, {displayName(user?.username)}</h2>
           <p className="text-xs text-slate-400 dark:text-slate-500 font-medium">{format(new Date(), "EEEE, MMMM d")}</p>
         </div>
         <div className="ml-auto flex items-center gap-2">

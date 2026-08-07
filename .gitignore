@@ -10,6 +10,7 @@ __pycache__/
 *.pyd
 .venv/
 venv/
+.pytest_cache/
 
 # Node / frontend
 node_modules/
@@ -20,8 +21,23 @@ build/
 # Logs
 *.log
 
+# Runtime pid files
+*.pid
+
 # OS files
 .DS_Store
 
 # Local tooling
 .codegraph/
+.omo/
+.playwright-mcp/
+
+# Uploaded files (avatars, etc.)
+backend/uploads/
+
+# Temp verification / scratch scripts
+_verify_ui*/
+_smoke_*.ps1
+_probe.py
+_bootstrap_db.py
+_verify_schema.py
