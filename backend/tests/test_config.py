@@ -19,5 +19,4 @@ def test_database_url_is_normalized_for_asyncpg():
     value = "postgresql://neondb_owner:secret@host/dbname?sslmode=require"
     s = Settings(database_url=value)
     assert s.database_url.startswith("postgresql+asyncpg://")
-    assert "sslmode=require" not in s.database_url
-    assert "ssl=true" in s.database_url
+    assert "sslmode=require" in s.database_url

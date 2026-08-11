@@ -1,4 +1,8 @@
-const API_BASE = import.meta.env.VITE_API_URL || "";
+const DEFAULT_API_URL = import.meta.env.PROD
+  ? "https://flowboard-backend-v65t.onrender.com"
+  : "http://localhost:8000";
+
+const API_BASE = (import.meta.env.VITE_API_URL || DEFAULT_API_URL).replace(/\/$/, "");
 
 export function resolveAvatarUrl(avatarUrl: string | null | undefined): string | null {
   if (!avatarUrl) return null;

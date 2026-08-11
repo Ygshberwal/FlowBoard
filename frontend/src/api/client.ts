@@ -1,7 +1,11 @@
 import axios, { AxiosError, AxiosRequestConfig, InternalAxiosRequestConfig } from "axios";
 import { useAuthStore } from "../store/authStore";
 
-const BASE_URL = import.meta.env.VITE_API_URL || "";
+const DEFAULT_API_URL = import.meta.env.PROD
+  ? "https://flowboard-backend-v65t.onrender.com"
+  : "http://localhost:8000";
+
+const BASE_URL = (import.meta.env.VITE_API_URL || DEFAULT_API_URL).replace(/\/$/, "");
 
 const AUTH_SKIP_PATHS = [
   "/api/auth/register",
