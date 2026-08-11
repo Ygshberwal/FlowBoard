@@ -1,3 +1,4 @@
+from pydantic import field_validator
 from pydantic_settings import BaseSettings
 from functools import lru_cache
 from typing import List
@@ -12,6 +13,24 @@ class Settings(BaseSettings):
     access_token_minutes: int = 15
     refresh_token_days: int = 7
     upload_dir: str = "uploads"
+
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def normalize_database_url(cls, value: str) -> str:
+        if not isinstance(value, str):
+            return value
+
+        normalized = value.strip()
+
+        if normalized.startswith("postgresql+psycopg2://"):
+            normalized = normalized.replace("postgresql+psycopg2://", "postgresql+asyncpg://", 1)
+        elif normalized.startswith("postgresql://"):
+            normalized = normalized.replace("postgresql://", "postgresql+asyncpg://", 1)
+
+        if "sslmode=require" in normalized:
+            normalized = normalized.replace("sslmode=require", "ssl=true")
+
+        return normalized
 
     @property
     def cors_origins_list(self) -> List[str]:
