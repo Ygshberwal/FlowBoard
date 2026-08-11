@@ -2,6 +2,7 @@ from pydantic import field_validator
 from pydantic_settings import BaseSettings
 from functools import lru_cache
 from typing import List
+import re
 
 
 class Settings(BaseSettings):
@@ -29,6 +30,12 @@ class Settings(BaseSettings):
 
         if "sslmode=require" in normalized:
             normalized = normalized.replace("sslmode=require", "ssl=true")
+
+        normalized = re.sub(r"([?&])ssl=true", r"\1ssl=true", normalized)
+        if "?" in normalized and "ssl=true" not in normalized:
+            normalized = f"{normalized}&ssl=true"
+        elif "?" not in normalized and "ssl=true" not in normalized:
+            normalized = f"{normalized}?ssl=true"
 
         return normalized
 
