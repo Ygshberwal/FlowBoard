@@ -43,7 +43,7 @@ Create a local environment file at `backend/.env`:
 ```env
 DATABASE_URL=postgresql+asyncpg://flowboard:flowboard@localhost:5432/flowboard
 REDIS_URL=redis://localhost:6379/0
-CORS_ORIGINS=http://localhost:5173,http://localhost:80
+CORS_ORIGINS=http://localhost:5173,http://localhost:80,https://flowboard-fontend.vercel.app
 ```
 
 If your local PostgreSQL uses different credentials, update the `DATABASE_URL` to match your setup.
