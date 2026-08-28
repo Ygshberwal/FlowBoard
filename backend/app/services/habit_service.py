@@ -22,8 +22,11 @@ def _streaks_cache_key(user_id: uuid.UUID) -> str:
 
 
 async def _invalidate_streaks_cache(user_id: uuid.UUID) -> None:
-    redis = await get_redis()
-    await redis.delete(_streaks_cache_key(user_id))
+    try:
+        redis = await get_redis()
+        await redis.delete(_streaks_cache_key(user_id))
+    except Exception:
+        return
 
 
 def _streak_to_payload(row: HabitStreak) -> Dict[str, Any]:

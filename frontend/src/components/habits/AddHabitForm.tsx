@@ -1,7 +1,9 @@
 import { useState } from "react";
+import { AxiosError } from "axios";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { habitsApi } from "../../api/habits";
 import type { Habit, HabitCreate, HabitUpdate } from "../../types/habit";
+import { toast } from "../../store/toastStore";
 
 interface Props {
   onClose: () => void;
@@ -27,14 +29,23 @@ export default function AddHabitForm({ onClose, habit }: Props) {
     onClose();
   };
 
+  const showError = (error: unknown) => {
+    const detail = error instanceof AxiosError
+      ? error.response?.data?.detail
+      : undefined;
+    toast.error(detail || "Could not save habit. Please try again.");
+  };
+
   const createMutation = useMutation({
     mutationFn: (data: HabitCreate) => habitsApi.create(data),
     onSuccess: invalidate,
+    onError: showError,
   });
 
   const updateMutation = useMutation({
     mutationFn: (data: HabitUpdate) => habitsApi.update(habit!.id, data),
     onSuccess: invalidate,
+    onError: showError,
   });
 
   const isPending = createMutation.isPending || updateMutation.isPending;
