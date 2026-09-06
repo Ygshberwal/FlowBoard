@@ -23,6 +23,7 @@ class Task(Base):
         nullable=True,
     )
     priority: Mapped[str] = mapped_column(String(8), nullable=False, default="medium")
+    sort_order: Mapped[int | None] = mapped_column(Integer, nullable=True)
     category: Mapped[str | None] = mapped_column(Text, nullable=True)
     estimated_mins: Mapped[int | None] = mapped_column(Integer, nullable=True)
     deadline: Mapped[datetime | None] = mapped_column(

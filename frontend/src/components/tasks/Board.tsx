@@ -5,6 +5,7 @@ import { tasksApi } from "../../api/tasks";
 import { useTaskStore } from "../../store/taskStore";
 import { useAuthStore } from "../../store/authStore";
 import { displayName } from "../../lib/avatar";
+import { orderTasks } from "../../lib/taskOrder";
 import type { SectionWithTasks } from "../../types/section";
 import { format } from "date-fns";
 import SectionColumn from "./SectionColumn";
@@ -15,6 +16,7 @@ export default function Board() {
   const { selectedTaskId } = useTaskStore();
   const user = useAuthStore((s) => s.user);
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
+  const [taskDropTargetId, setTaskDropTargetId] = useState<string | null>(null);
   const [draggingSectionId, setDraggingSectionId] = useState<string | null>(null);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
   const [sectionDropTargetId, setSectionDropTargetId] = useState<string | null>(null);
@@ -74,7 +76,7 @@ export default function Board() {
         if (moved) {
           const next = stripped.map((s) =>
             s.id === sectionId
-              ? { ...s, tasks: [{ ...moved!, section_id: sectionId }, ...s.tasks] }
+              ? { ...s, tasks: [{ ...moved!, section_id: sectionId, sort_order: null }, ...s.tasks] }
               : s
           );
           qc.setQueryData(["board"], next);
@@ -84,6 +86,26 @@ export default function Board() {
     },
     onError: (_e, _v, ctx) => {
       if (ctx?.prev) qc.setQueryData(["board"], ctx.prev);
+    },
+    onSettled: invalidate,
+  });
+
+  const reorderTaskMutation = useMutation({
+    mutationFn: ({ orderedTasks }: { sectionId: string; orderedTasks: SectionWithTasks["tasks"] }) =>
+      Promise.all(orderedTasks.map((task, index) => tasksApi.update(task.id, { sort_order: index }))),
+    onMutate: async ({ sectionId, orderedTasks }) => {
+      await qc.cancelQueries({ queryKey: ["board"] });
+      const previous = qc.getQueryData<SectionWithTasks[]>(["board"]);
+      if (previous) {
+        qc.setQueryData(
+          ["board"],
+          previous.map((section) => section.id === sectionId ? { ...section, tasks: orderedTasks } : section),
+        );
+      }
+      return { previous };
+    },
+    onError: (_error, _variables, context) => {
+      if (context?.previous) qc.setQueryData(["board"], context.previous);
     },
     onSettled: invalidate,
   });
@@ -134,14 +156,41 @@ export default function Board() {
     setDraggingTaskId(null);
   };
 
-  const handleDropSection = (targetId: string) => {
+  const handleDropTaskAt = (sectionId: string, targetTaskId: string, before: boolean) => {
+    if (draggingTaskId && draggingTaskId !== targetTaskId) {
+      const sourceSection = sections.find((item) => item.tasks.some((task) => task.id === draggingTaskId));
+      const section = sections.find((item) => item.id === sectionId);
+      if (sourceSection && sourceSection.id !== sectionId) {
+        moveTaskMutation.mutate({ taskId: draggingTaskId, sectionId });
+      } else if (section) {
+        const orderedTasks = orderTasks(section.tasks);
+        const fromIndex = orderedTasks.findIndex((task) => task.id === draggingTaskId);
+        const targetIndex = orderedTasks.findIndex((task) => task.id === targetTaskId);
+        if (fromIndex !== -1 && targetIndex !== -1) {
+          const [moved] = orderedTasks.splice(fromIndex, 1);
+          const insertionIndex = orderedTasks.findIndex((task) => task.id === targetTaskId) + (before ? 0 : 1);
+          orderedTasks.splice(insertionIndex, 0, moved);
+          const persistedOrder = orderedTasks.map((task, index) => ({
+            ...task,
+            sort_order: index,
+          }));
+          reorderTaskMutation.mutate({ sectionId, orderedTasks: persistedOrder });
+        }
+      }
+    }
+    setDraggingTaskId(null);
+    setTaskDropTargetId(null);
+  };
+
+  const handleDropSection = (targetId: string, before: boolean) => {
     if (draggingSectionId && draggingSectionId !== targetId) {
       const orderedIds = sections.map((section) => section.id);
       const fromIndex = orderedIds.indexOf(draggingSectionId);
       const targetIndex = orderedIds.indexOf(targetId);
       if (fromIndex !== -1 && targetIndex !== -1) {
         orderedIds.splice(fromIndex, 1);
-        orderedIds.splice(orderedIds.indexOf(targetId), 0, draggingSectionId);
+        const insertionIndex = orderedIds.indexOf(targetId) + (before ? 0 : 1);
+        orderedIds.splice(insertionIndex, 0, draggingSectionId);
         reorderSectionMutation.mutate(orderedIds);
       }
     }
@@ -208,9 +257,12 @@ export default function Board() {
                   isDropTarget={dropTargetId === section.id}
                   draggingTaskId={draggingTaskId}
                   onTaskDragStart={setDraggingTaskId}
-                  onTaskDragEnd={() => { setDraggingTaskId(null); setDropTargetId(null); }}
+                  onTaskDragEnd={() => { setDraggingTaskId(null); setDropTargetId(null); setTaskDropTargetId(null); }}
                   onDropTask={handleDropTask}
                   onDragOverColumn={setDropTargetId}
+                  taskDropTargetId={taskDropTargetId}
+                  onDragOverTask={setTaskDropTargetId}
+                  onDropTaskAt={handleDropTaskAt}
                   isSectionDropTarget={sectionDropTargetId === section.id}
                   onSectionDragStart={setDraggingSectionId}
                   onSectionDragEnd={() => { setDraggingSectionId(null); setSectionDropTargetId(null); }}

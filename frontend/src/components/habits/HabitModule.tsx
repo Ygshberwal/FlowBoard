@@ -16,6 +16,8 @@ export default function HabitModule() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
   const [activeTab, setActiveTab] = useState<"tracker" | "grid" | "analytics">("tracker");
+  const [draggingHabitId, setDraggingHabitId] = useState<string | null>(null);
+  const [habitDropTargetId, setHabitDropTargetId] = useState<string | null>(null);
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => habitsApi.delete(id),
@@ -30,6 +32,36 @@ export default function HabitModule() {
     queryKey: ["habits"],
     queryFn: habitsApi.list,
   });
+
+  const reorderMutation = useMutation({
+    mutationFn: (orderedHabits: Habit[]) =>
+      Promise.all(orderedHabits.map((habit, index) => habitsApi.update(habit.id, { sort_order: index }))),
+    onMutate: async (orderedHabits) => {
+      await qc.cancelQueries({ queryKey: ["habits"] });
+      const previous = qc.getQueryData<Habit[]>(["habits"]);
+      qc.setQueryData(["habits"], orderedHabits);
+      return { previous };
+    },
+    onError: (_error, _orderedHabits, context) => {
+      if (context?.previous) qc.setQueryData(["habits"], context.previous);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ["habits"] }),
+  });
+
+  const handleHabitDrop = (targetId: string) => {
+    if (draggingHabitId && draggingHabitId !== targetId) {
+      const orderedHabits = [...habits];
+      const fromIndex = orderedHabits.findIndex((habit) => habit.id === draggingHabitId);
+      const targetIndex = orderedHabits.findIndex((habit) => habit.id === targetId);
+      if (fromIndex !== -1 && targetIndex !== -1) {
+        const [moved] = orderedHabits.splice(fromIndex, 1);
+        orderedHabits.splice(orderedHabits.findIndex((habit) => habit.id === targetId), 0, moved);
+        reorderMutation.mutate(orderedHabits);
+      }
+    }
+    setDraggingHabitId(null);
+    setHabitDropTargetId(null);
+  };
 
   const { data: logsData } = useQuery<HabitLogsResponse>({
     queryKey: ["habit-logs", viewYear, viewMonth + 1],
@@ -117,6 +149,11 @@ export default function HabitModule() {
                 habit={habit}
                 pct={pct}
                 streak={streak?.current_streak ?? 0}
+                isDropTarget={habitDropTargetId === habit.id}
+                onDragStart={() => setDraggingHabitId(habit.id)}
+                onDragEnd={() => { setDraggingHabitId(null); setHabitDropTargetId(null); }}
+                onDragOver={() => setHabitDropTargetId(habit.id)}
+                onDrop={() => handleHabitDrop(habit.id)}
                 onEdit={() => setEditingHabit(habit)}
                 onDelete={() => {
                   if (window.confirm(`Delete "${habit.name}"? This removes all its logs too.`)) {
@@ -155,17 +192,39 @@ function HabitChip({
   habit,
   pct,
   streak,
+  isDropTarget,
+  onDragStart,
+  onDragEnd,
+  onDragOver,
+  onDrop,
   onEdit,
   onDelete,
 }: {
   habit: Habit;
   pct: number;
   streak: number;
+  isDropTarget: boolean;
+  onDragStart: () => void;
+  onDragEnd: () => void;
+  onDragOver: () => void;
+  onDrop: () => void;
   onEdit: () => void;
   onDelete: () => void;
 }) {
   return (
-    <div className="group relative flex items-center gap-1.5 flex-shrink-0 bg-slate-50 dark:bg-slate-800 rounded-lg px-2.5 py-1.5 border border-slate-100 dark:border-slate-700 hover:border-slate-200 dark:hover:border-slate-600 transition-colors">
+    <div
+      draggable
+      onDragStart={(e) => {
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData("text/habit-id", habit.id);
+        onDragStart();
+      }}
+      onDragEnd={onDragEnd}
+      onDragOver={(e) => { e.preventDefault(); onDragOver(); }}
+      onDrop={(e) => { e.preventDefault(); onDrop(); }}
+      className={`group relative flex items-center gap-1.5 flex-shrink-0 bg-slate-50 dark:bg-slate-800 rounded-lg px-2.5 py-1.5 border hover:border-slate-200 dark:hover:border-slate-600 transition-colors cursor-grab active:cursor-grabbing ${isDropTarget ? "border-emerald-400 ring-2 ring-emerald-200 dark:ring-emerald-900" : "border-slate-100 dark:border-slate-700"}`}
+      title="Drag to rearrange habit"
+    >
       <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: habit.color }} />
       <span className="text-[11px] font-medium text-slate-600 dark:text-slate-200 whitespace-nowrap">{habit.name}</span>
       <div className="w-12 h-1 bg-slate-200 rounded-full overflow-hidden">
@@ -177,6 +236,7 @@ function HabitChip({
       )}
       {/* Edit button */}
       <button
+        draggable={false}
         onClick={(e) => { e.stopPropagation(); onEdit(); }}
         title="Edit habit"
         className="opacity-0 group-hover:opacity-100 transition-opacity ml-0.5 w-4 h-4 rounded-full bg-slate-100 dark:bg-slate-700 hover:bg-indigo-100 dark:hover:bg-indigo-900 flex items-center justify-center flex-shrink-0"
@@ -187,6 +247,7 @@ function HabitChip({
       </button>
       {/* Delete button */}
       <button
+        draggable={false}
         onClick={(e) => { e.stopPropagation(); onDelete(); }}
         title="Delete habit"
         className="opacity-0 group-hover:opacity-100 transition-opacity w-4 h-4 rounded-full bg-red-100 dark:bg-transparent hover:bg-red-200 dark:hover:bg-red-700 flex items-center justify-center flex-shrink-0"

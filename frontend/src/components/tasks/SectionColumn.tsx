@@ -1,6 +1,7 @@
 import { useState, KeyboardEvent } from "react";
 import type { SectionWithTasks } from "../../types/section";
 import { themeFor } from "../../lib/sectionTheme";
+import { orderTasks } from "../../lib/taskOrder";
 import TaskCard from "./TaskCard";
 
 interface Props {
@@ -14,10 +15,13 @@ interface Props {
   onTaskDragEnd: () => void;
   onDropTask: (sectionId: string) => void;
   onDragOverColumn: (sectionId: string | null) => void;
+  taskDropTargetId: string | null;
+  onDragOverTask: (taskId: string | null) => void;
+  onDropTaskAt: (sectionId: string, taskId: string, before: boolean) => void;
   isSectionDropTarget: boolean;
   onSectionDragStart: (sectionId: string) => void;
   onSectionDragEnd: () => void;
-  onDropSection: (sectionId: string) => void;
+  onDropSection: (sectionId: string, before: boolean) => void;
   onDragOverSection: (sectionId: string | null) => void;
   onAddTask: (sectionId: string, title: string) => void;
   onRenameSection: (sectionId: string, name: string) => void;
@@ -35,6 +39,9 @@ export default function SectionColumn({
   onTaskDragEnd,
   onDropTask,
   onDragOverColumn,
+  taskDropTargetId,
+  onDragOverTask,
+  onDropTaskAt,
   isSectionDropTarget,
   onSectionDragStart,
   onSectionDragEnd,
@@ -51,6 +58,7 @@ export default function SectionColumn({
   const [nameDraft, setNameDraft] = useState(section.name);
 
   const activeCount = section.tasks.filter((t) => !t.done).length;
+  const sortedTasks = orderTasks(section.tasks);
 
   const submitQuickAdd = () => {
     if (quickTitle.trim()) {
@@ -85,7 +93,9 @@ export default function SectionColumn({
     },
     onDrop: (e: React.DragEvent) => {
       e.preventDefault();
-      if (e.dataTransfer.getData("text/section-id")) onDropSection(section.id);
+      const bounds = e.currentTarget.getBoundingClientRect();
+      const before = e.clientX < bounds.left + bounds.width / 2;
+      if (e.dataTransfer.getData("text/section-id")) onDropSection(section.id, before);
       else if (e.dataTransfer.getData("text/task-id")) onDropTask(section.id);
       onDragOverColumn(null);
       onDragOverSection(null);
@@ -220,12 +230,18 @@ export default function SectionColumn({
             <span className="text-[11px] font-medium">Drop or add a task</span>
           </div>
         ) : (
-          section.tasks.map((task) => (
+          sortedTasks.map((task) => (
             <TaskCard
               key={task.id}
               task={task}
               onDragStart={onTaskDragStart}
               onDragEnd={onTaskDragEnd}
+              onDragOver={draggingTaskId !== null ? () => onDragOverTask(task.id) : undefined}
+              onDrop={draggingTaskId !== null ? (e) => {
+                const bounds = e.currentTarget.getBoundingClientRect();
+                onDropTaskAt(section.id, task.id, e.clientY < bounds.top + bounds.height / 2);
+              } : undefined}
+              isDropTarget={draggingTaskId !== null && taskDropTargetId === task.id}
               isDragging={draggingTaskId === task.id}
             />
           ))

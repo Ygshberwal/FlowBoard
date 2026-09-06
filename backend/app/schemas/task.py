@@ -25,6 +25,7 @@ class TaskBase(BaseModel):
     description: Optional[str] = None
     section_id: Optional[uuid.UUID] = None
     priority: str = "medium"
+    sort_order: Optional[int] = None
     category: Optional[str] = None
     estimated_mins: Optional[int] = None
     deadline: Optional[datetime] = None
@@ -40,6 +41,7 @@ class TaskUpdate(BaseModel):
     description: Optional[str] = None
     section_id: Optional[uuid.UUID] = None
     priority: Optional[str] = None
+    sort_order: Optional[int] = None
     category: Optional[str] = None
     estimated_mins: Optional[int] = None
     deadline: Optional[datetime] = None

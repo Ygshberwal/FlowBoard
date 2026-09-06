@@ -8,6 +8,9 @@ interface Props {
   task: Task;
   onDragStart: (taskId: string) => void;
   onDragEnd: () => void;
+  onDragOver?: () => void;
+  onDrop?: (event: React.DragEvent<HTMLDivElement>) => void;
+  isDropTarget?: boolean;
   isDragging: boolean;
 }
 
@@ -23,7 +26,7 @@ const PRIORITY_TEXT: Record<string, string> = {
   low: "text-slate-400",
 };
 
-export default function TaskCard({ task, onDragStart, onDragEnd, isDragging }: Props) {
+export default function TaskCard({ task, onDragStart, onDragEnd, onDragOver, onDrop, isDropTarget, isDragging }: Props) {
   const { selectedTaskId, selectTask } = useTaskStore();
   const qc = useQueryClient();
   const isSelected = selectedTaskId === task.id;
@@ -58,11 +61,31 @@ export default function TaskCard({ task, onDragStart, onDragEnd, isDragging }: P
         onDragStart(task.id);
       }}
       onDragEnd={onDragEnd}
+      onDragEnter={(e) => {
+        if (!onDragOver) return;
+        e.preventDefault();
+        e.stopPropagation();
+        onDragOver();
+      }}
+      onDragOver={(e) => {
+        if (!onDragOver) return;
+        e.preventDefault();
+        e.stopPropagation();
+        onDragOver();
+      }}
+      onDrop={(e) => {
+        if (!onDrop) return;
+        e.preventDefault();
+        e.stopPropagation();
+        onDrop(e);
+      }}
       onClick={() => selectTask(isSelected ? null : task.id)}
       className={`group relative flex overflow-hidden rounded-xl bg-white dark:bg-slate-900 cursor-pointer animate-fade-in-up
         transition-all duration-200 ease-spring
         ${isSelected
           ? "shadow-card-hover ring-2 ring-indigo-400"
+          : isDropTarget
+          ? "shadow-card-hover ring-2 ring-emerald-400"
           : "shadow-card ring-1 ring-slate-200/70 dark:ring-white/10 hover:shadow-card-hover hover:-translate-y-0.5"}
         ${isDragging ? "opacity-40 rotate-1 scale-95" : "opacity-100"}`}
     >
