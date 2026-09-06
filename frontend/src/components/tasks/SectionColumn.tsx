@@ -14,6 +14,11 @@ interface Props {
   onTaskDragEnd: () => void;
   onDropTask: (sectionId: string) => void;
   onDragOverColumn: (sectionId: string | null) => void;
+  isSectionDropTarget: boolean;
+  onSectionDragStart: (sectionId: string) => void;
+  onSectionDragEnd: () => void;
+  onDropSection: (sectionId: string) => void;
+  onDragOverSection: (sectionId: string | null) => void;
   onAddTask: (sectionId: string, title: string) => void;
   onRenameSection: (sectionId: string, name: string) => void;
   onDeleteSection: (sectionId: string, name: string, taskCount: number) => void;
@@ -30,6 +35,11 @@ export default function SectionColumn({
   onTaskDragEnd,
   onDropTask,
   onDragOverColumn,
+  isSectionDropTarget,
+  onSectionDragStart,
+  onSectionDragEnd,
+  onDropSection,
+  onDragOverSection,
   onAddTask,
   onRenameSection,
   onDeleteSection,
@@ -62,15 +72,23 @@ export default function SectionColumn({
   };
 
   const dragProps = {
-    onDragOver: (e: React.DragEvent) => { e.preventDefault(); onDragOverColumn(section.id); },
+    onDragOver: (e: React.DragEvent) => {
+      e.preventDefault();
+      if (e.dataTransfer.types.includes("text/section-id")) onDragOverSection(section.id);
+      else onDragOverColumn(section.id);
+    },
     onDragLeave: (e: React.DragEvent) => {
-      if (!e.currentTarget.contains(e.relatedTarget as Node)) onDragOverColumn(null);
+      if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+        onDragOverColumn(null);
+        onDragOverSection(null);
+      }
     },
     onDrop: (e: React.DragEvent) => {
       e.preventDefault();
-      const taskId = e.dataTransfer.getData("text/task-id");
-      if (taskId) onDropTask(section.id);
+      if (e.dataTransfer.getData("text/section-id")) onDropSection(section.id);
+      else if (e.dataTransfer.getData("text/task-id")) onDropTask(section.id);
       onDragOverColumn(null);
+      onDragOverSection(null);
     },
   };
 
@@ -81,7 +99,9 @@ export default function SectionColumn({
         {...dragProps}
         className={`flex flex-col items-center w-12 flex-shrink-0 rounded-2xl overflow-hidden
           transition-all duration-200 ease-spring animate-fade-in
-          ${isDropTarget
+          ${isSectionDropTarget
+            ? "bg-indigo-50 dark:bg-indigo-950/30 ring-2 ring-indigo-400 shadow-column"
+            : isDropTarget
             ? `${theme.dropBg} dark:bg-white/10 ring-2 ${theme.ring} shadow-column`
             : "bg-white/70 dark:bg-slate-800/60 ring-1 ring-slate-200/70 dark:ring-white/10 shadow-column"}`}
       >
@@ -128,8 +148,19 @@ export default function SectionColumn({
       <div className={`h-1.5 bg-gradient-to-r ${theme.bar}`} />
 
       {/* Header */}
-      <div className="flex items-center gap-1.5 px-3.5 pt-3 pb-2">
+      <div
+        draggable
+        onDragStart={(e) => {
+          e.dataTransfer.effectAllowed = "move";
+          e.dataTransfer.setData("text/section-id", section.id);
+          onSectionDragStart(section.id);
+        }}
+        onDragEnd={onSectionDragEnd}
+        className={`flex items-center gap-1.5 px-3.5 pt-3 pb-2 cursor-grab active:cursor-grabbing ${isSectionDropTarget ? "bg-indigo-50/70 dark:bg-indigo-950/20" : ""}`}
+        title="Drag to rearrange section"
+      >
         <button
+          draggable={false}
           onClick={onToggleCollapse}
           title="Collapse section"
           className="text-slate-300 hover:text-slate-500 dark:text-slate-500 dark:hover:text-slate-300 transition-colors -ml-1"
@@ -152,6 +183,7 @@ export default function SectionColumn({
           />
         ) : (
           <button
+            draggable={false}
             onClick={() => { setNameDraft(section.name); setEditingName(true); }}
             title="Rename section"
             className={`flex-1 text-left text-sm font-bold text-slate-800 dark:text-slate-100 truncate transition-colors ${theme.glowText}`}
@@ -163,6 +195,7 @@ export default function SectionColumn({
           {activeCount}
         </span>
         <button
+          draggable={false}
           onClick={() => onDeleteSection(section.id, section.name, section.tasks.length)}
           title="Delete section"
           className="text-slate-300 hover:text-red-500 dark:text-slate-500 dark:hover:text-red-400 transition-colors p-0.5"

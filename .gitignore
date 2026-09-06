@@ -41,3 +41,5 @@ _smoke_*.ps1
 _probe.py
 _bootstrap_db.py
 _verify_schema.py
+
+.github/
