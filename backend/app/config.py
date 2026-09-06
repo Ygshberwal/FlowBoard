@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     jwt_secret: str = "change-me-in-dev-only"
     jwt_algorithm: str = "HS256"
     access_token_minutes: int = 15
-    refresh_token_days: int = 7
+    refresh_token_days: int = 30
     upload_dir: str = "uploads"
 
     @field_validator("database_url", mode="before")
