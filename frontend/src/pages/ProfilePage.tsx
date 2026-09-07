@@ -29,6 +29,7 @@ export default function ProfilePage() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [savedAvatarFailed, setSavedAvatarFailed] = useState(false);
   const [avatarError, setAvatarError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -48,6 +49,10 @@ export default function ProfilePage() {
     setAvatarPreview(url);
     return () => URL.revokeObjectURL(url);
   }, [avatarFile]);
+
+  useEffect(() => {
+    setSavedAvatarFailed(false);
+  }, [user?.avatar_url]);
 
   if (!user) {
     return (
@@ -249,8 +254,13 @@ export default function ProfilePage() {
             <div className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white text-lg font-bold shadow-md shadow-indigo-500/30 overflow-hidden ring-2 ring-white dark:ring-slate-800">
               {avatarPreview ? (
                 <img src={avatarPreview} alt="new" className="w-full h-full object-cover" />
-              ) : savedAvatar ? (
-                <img src={savedAvatar} alt={user.username} className="w-full h-full object-cover" />
+              ) : savedAvatar && !savedAvatarFailed ? (
+                <img
+                  src={savedAvatar}
+                  alt={user.username}
+                  className="w-full h-full object-cover"
+                  onError={() => setSavedAvatarFailed(true)}
+                />
               ) : (
                 <span>{initialsFor(user.username)}</span>
               )}

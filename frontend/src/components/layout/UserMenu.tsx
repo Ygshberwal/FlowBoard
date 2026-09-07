@@ -12,6 +12,7 @@ export default function UserMenu() {
 
   const [open, setOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [avatarFailed, setAvatarFailed] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -68,11 +69,12 @@ export default function UserMenu() {
         aria-expanded={open}
         className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white text-sm font-bold shadow-md shadow-indigo-500/30 ring-2 ring-white dark:ring-slate-800 overflow-hidden"
       >
-        {avatarSrc ? (
+        {avatarSrc && !avatarFailed ? (
           <img
             src={avatarSrc}
             alt={user.username}
             className="w-full h-full object-cover"
+            onError={() => setAvatarFailed(true)}
           />
         ) : (
           <span>{initials}</span>
