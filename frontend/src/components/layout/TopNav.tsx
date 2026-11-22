@@ -26,7 +26,7 @@ export default function TopNav() {
   });
 
   return (
-    <header className="h-14 flex-shrink-0 glass border-b border-white/60 dark:border-white/10 flex items-center px-5 gap-8 z-20">
+    <header className="relative z-20 flex flex-shrink-0 flex-wrap items-center gap-x-4 gap-y-2 border-b border-white/60 px-4 py-3 glass dark:border-white/10 sm:flex-nowrap sm:gap-8 sm:px-6">
       {/* Logo */}
       <div className="flex items-center gap-2.5">
         <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-md shadow-indigo-500/30">
@@ -36,13 +36,13 @@ export default function TopNav() {
       </div>
 
       {/* Primary nav tabs */}
-      <nav className="flex items-center gap-1.5">
+      <nav aria-label="Main navigation" className="order-3 flex w-full items-center gap-1.5 sm:order-none sm:w-auto">
         {TABS.map((tab) => (
           <NavLink
             key={tab.to}
             to={tab.to}
             className={({ isActive }) =>
-              `flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
+              `flex min-h-11 flex-1 items-center justify-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold transition-colors sm:flex-none ${
                 isActive
                   ? "bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-300 shadow-card ring-1 ring-slate-200/70 dark:ring-white/10"
                   : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-white/60 dark:hover:bg-white/10"
@@ -62,10 +62,8 @@ export default function TopNav() {
         ))}
       </nav>
 
-      <div className="flex-1" />
-
       {/* Theme toggle + avatar */}
-      <div className="flex items-center gap-2">
+      <div className="ml-auto flex items-center gap-2">
         <ThemeToggle />
         <UserMenu />
       </div>

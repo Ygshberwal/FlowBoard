@@ -1,4 +1,4 @@
-import { useState, KeyboardEvent } from "react";
+import { useRef, useState } from "react";
 import type { SectionWithTasks } from "../../types/section";
 import { themeFor } from "../../lib/sectionTheme";
 import { orderTasks } from "../../lib/taskOrder";
@@ -6,6 +6,8 @@ import TaskCard from "./TaskCard";
 
 interface Props {
   section: SectionWithTasks;
+  visibleTasks: SectionWithTasks["tasks"];
+  isFiltered: boolean;
   index: number;
   isCollapsed: boolean;
   onToggleCollapse: () => void;
@@ -23,13 +25,15 @@ interface Props {
   onSectionDragEnd: () => void;
   onDropSection: (sectionId: string, before: boolean) => void;
   onDragOverSection: (sectionId: string | null) => void;
-  onAddTask: (sectionId: string, title: string) => void;
+  onAddTask: (sectionId: string, title: string) => Promise<void>;
   onRenameSection: (sectionId: string, name: string) => void;
   onDeleteSection: (sectionId: string, name: string, taskCount: number) => void;
 }
 
 export default function SectionColumn({
   section,
+  visibleTasks,
+  isFiltered,
   index,
   isCollapsed,
   onToggleCollapse,
@@ -54,22 +58,31 @@ export default function SectionColumn({
   const theme = themeFor(index);
   const [quickTitle, setQuickTitle] = useState("");
   const [adding, setAdding] = useState(false);
+  const [savingTask, setSavingTask] = useState(false);
+  const taskInputRef = useRef<HTMLInputElement>(null);
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState(section.name);
 
-  const activeCount = section.tasks.filter((t) => !t.done).length;
-  const sortedTasks = orderTasks(section.tasks);
+  const activeCount = visibleTasks.filter((t) => !t.done).length;
+  const sortedTasks = orderTasks(visibleTasks);
 
-  const submitQuickAdd = () => {
-    if (quickTitle.trim()) {
-      onAddTask(section.id, quickTitle.trim());
-      setQuickTitle("");
-    }
+  const startAddingTask = () => {
+    setAdding(true);
+    taskInputRef.current?.focus();
+    taskInputRef.current?.scrollIntoView({ block: "nearest", inline: "nearest" });
   };
 
-  const handleQuickAddKey = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") submitQuickAdd();
-    if (e.key === "Escape") { setQuickTitle(""); setAdding(false); }
+  const submitQuickAdd = async () => {
+    if (!quickTitle.trim() || savingTask) return;
+    setSavingTask(true);
+    try {
+      await onAddTask(section.id, quickTitle.trim());
+      setQuickTitle("");
+    } catch {
+      // Keep the draft; the board reports the error.
+    } finally {
+      setSavingTask(false);
+    }
   };
 
   const commitRename = () => {
@@ -118,8 +131,10 @@ export default function SectionColumn({
         <div className={`w-full h-1.5 bg-gradient-to-r ${theme.bar}`} />
         <button
           onClick={onToggleCollapse}
+          aria-label={`Expand ${section.name}`}
+          aria-expanded={false}
           title="Expand section"
-          className="mt-2 text-slate-400 hover:text-indigo-500 dark:text-slate-500 dark:hover:text-indigo-300 transition-colors"
+          className="mt-1 flex h-11 w-11 items-center justify-center text-slate-500 hover:text-indigo-500 dark:text-slate-400 dark:hover:text-indigo-300 transition-colors"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
@@ -148,7 +163,7 @@ export default function SectionColumn({
   return (
     <div
       {...dragProps}
-      className={`flex flex-col flex-1 min-w-[260px] max-w-[340px] rounded-2xl overflow-hidden
+      className={`flex w-[calc(100vw-3rem)] min-w-[260px] max-w-[340px] flex-shrink-0 snap-start flex-col rounded-2xl overflow-hidden sm:w-80
         transition-all duration-200 ease-spring animate-fade-in-up
         ${isDropTarget
           ? `${theme.dropBg} dark:bg-white/10 ring-2 ${theme.ring} shadow-column`
@@ -159,7 +174,7 @@ export default function SectionColumn({
 
       {/* Header */}
       <div
-        draggable
+        draggable={!isFiltered}
         onDragStart={(e) => {
           e.dataTransfer.effectAllowed = "move";
           e.dataTransfer.setData("text/section-id", section.id);
@@ -172,8 +187,11 @@ export default function SectionColumn({
         <button
           draggable={false}
           onClick={onToggleCollapse}
+          aria-label={`Collapse ${section.name}`}
+          aria-expanded={true}
+          disabled={isFiltered}
           title="Collapse section"
-          className="text-slate-300 hover:text-slate-500 dark:text-slate-500 dark:hover:text-slate-300 transition-colors -ml-1"
+          className="flex h-9 w-8 flex-shrink-0 items-center justify-center text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors -ml-1 disabled:opacity-40"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
@@ -182,6 +200,7 @@ export default function SectionColumn({
         {editingName ? (
           <input
             autoFocus
+            aria-label={`Rename ${section.name}`}
             value={nameDraft}
             onChange={(e) => setNameDraft(e.target.value)}
             onBlur={commitRename}
@@ -208,7 +227,8 @@ export default function SectionColumn({
           draggable={false}
           onClick={() => onDeleteSection(section.id, section.name, section.tasks.length)}
           title="Delete section"
-          className="text-slate-300 hover:text-red-500 dark:text-slate-500 dark:hover:text-red-400 transition-colors p-0.5"
+          aria-label={`Delete ${section.name} section`}
+          className="flex h-9 w-8 flex-shrink-0 items-center justify-center text-slate-500 hover:text-red-600 dark:text-slate-400 dark:hover:text-red-400 transition-colors"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -219,21 +239,29 @@ export default function SectionColumn({
       {/* Cards */}
       <div className="flex-1 overflow-y-auto px-2.5 pb-2 space-y-2 min-h-[60px]">
         {section.tasks.length === 0 ? (
-          <div className={`flex flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed py-8 text-center transition-colors ${
+          <button
+            type="button"
+            onClick={startAddingTask}
+            aria-label={`Add your first task to ${section.name}`}
+            aria-expanded={adding}
+            aria-controls={adding ? `quick-add-${section.id}` : undefined}
+            className={`flex w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-3 py-8 text-center transition-colors hover:border-indigo-300 hover:bg-indigo-50/50 hover:text-indigo-700 dark:hover:border-indigo-500 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-300 ${
             isDropTarget
               ? "border-indigo-300 text-indigo-400"
-              : "border-slate-200 dark:border-white/10 text-slate-300 dark:text-slate-600"
+               : "border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400"
           }`}>
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <svg aria-hidden="true" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
             </svg>
-            <span className="text-[11px] font-medium">Drop or add a task</span>
-          </div>
+            <span className="text-sm font-semibold">Drop or add a task</span>
+            <span className="text-xs">Click to write your first task</span>
+          </button>
         ) : (
           sortedTasks.map((task) => (
             <TaskCard
               key={task.id}
               task={task}
+              dragEnabled={!isFiltered}
               onDragStart={onTaskDragStart}
               onDragEnd={onTaskDragEnd}
               onDragOver={draggingTaskId !== null ? () => onDragOverTask(task.id) : undefined}
@@ -251,19 +279,31 @@ export default function SectionColumn({
       {/* Add task footer */}
       <div className="px-2.5 pb-3 pt-1">
         {adding ? (
+          <form id={`quick-add-${section.id}`} onSubmit={(event) => { event.preventDefault(); void submitQuickAdd(); }} className="space-y-2">
+          <label htmlFor={`task-title-${section.id}`} className="sr-only">New task in {section.name}</label>
           <input
+            id={`task-title-${section.id}`}
+            ref={taskInputRef}
             autoFocus
             value={quickTitle}
+            disabled={savingTask}
             onChange={(e) => setQuickTitle(e.target.value)}
-            onKeyDown={handleQuickAddKey}
-            onBlur={() => { submitQuickAdd(); setAdding(false); }}
-            placeholder="Task title, Enter to add…"
-            className="w-full text-[13px] text-slate-700 dark:text-slate-100 bg-white dark:bg-slate-900 rounded-xl border border-indigo-300 dark:border-indigo-500 px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-200 placeholder-slate-400 shadow-sm"
+            onKeyDown={(event) => { if (event.key === "Escape" && !savingTask) { setQuickTitle(""); setAdding(false); } }}
+            placeholder="What needs to get done?"
+            className="field"
+            maxLength={500}
+            required
           />
+          <div className="flex gap-2">
+            <button type="submit" disabled={!quickTitle.trim() || savingTask} className="btn-primary flex-1">{savingTask ? "Adding…" : "Add task"}</button>
+            <button type="button" disabled={savingTask} onClick={() => { setQuickTitle(""); setAdding(false); }} className="btn-secondary">Cancel</button>
+          </div>
+          </form>
         ) : (
           <button
-            onClick={() => setAdding(true)}
-            className="w-full flex items-center gap-1.5 text-[13px] font-medium text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-300 hover:bg-white dark:hover:bg-white/5 rounded-xl px-3 py-2 transition-colors"
+            onClick={startAddingTask}
+            aria-label={`Add task to ${section.name}`}
+            className="min-h-11 w-full flex items-center gap-1.5 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-300 bg-white/50 hover:bg-white dark:bg-white/5 dark:hover:bg-white/10 rounded-xl px-3 py-2 transition-colors"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />

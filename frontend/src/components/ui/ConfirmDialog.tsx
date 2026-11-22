@@ -1,4 +1,5 @@
-import { ReactNode, useEffect } from "react";
+import { ReactNode, useId } from "react";
+import Dialog from "./Dialog";
 
 interface Props {
   open: boolean;
@@ -8,6 +9,7 @@ interface Props {
   cancelLabel?: string;
   tone?: "default" | "danger";
   busy?: boolean;
+  error?: string;
   onConfirm: () => void;
   onCancel: () => void;
   children?: ReactNode;
@@ -21,23 +23,13 @@ export default function ConfirmDialog({
   cancelLabel = "Cancel",
   tone = "default",
   busy = false,
+  error,
   onConfirm,
   onCancel,
   children,
 }: Props) {
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !busy) onCancel();
-    };
-    document.addEventListener("keydown", onKey);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prevOverflow;
-    };
-  }, [open, busy, onCancel]);
+  const titleId = useId();
+  const descriptionId = useId();
 
   if (!open) return null;
 
@@ -47,28 +39,26 @@ export default function ConfirmDialog({
       : "bg-indigo-600 hover:bg-indigo-500 shadow-indigo-500/20";
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4 animate-fade-in"
-      onClick={(e) => { if (e.target === e.currentTarget && !busy) onCancel(); }}
-    >
-      <div className="w-full max-w-md rounded-2xl glass shadow-card ring-1 ring-slate-200/70 dark:ring-white/10 p-5 animate-scale-in">
-        <h2 className="text-base font-bold text-slate-900 dark:text-white">
+    <Dialog labelledBy={titleId} describedBy={description ? descriptionId : undefined} onDismiss={onCancel} busy={busy}>
+      <div className="p-6">
+        <h2 id={titleId} className="text-base font-bold text-slate-900 dark:text-white">
           {title}
         </h2>
         {description && (
-          <div className="mt-1.5 text-sm text-slate-600 dark:text-slate-300 leading-snug">
+          <div id={descriptionId} className="mt-1.5 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
             {description}
           </div>
         )}
         {children && <div className="mt-3">{children}</div>}
+        {error && <p role="alert" className="mt-3 rounded-xl bg-red-50 p-3 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-300">{error}</p>}
         <div className="mt-5 flex gap-2 justify-end">
           <button
             type="button"
+            autoFocus
+            data-autofocus
             onClick={onCancel}
             disabled={busy}
-            className="rounded-lg px-3 py-1.5 text-sm font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 disabled:opacity-60"
+            className="btn-secondary"
           >
             {cancelLabel}
           </button>
@@ -76,12 +66,12 @@ export default function ConfirmDialog({
             type="button"
             onClick={onConfirm}
             disabled={busy}
-            className={`rounded-lg px-3 py-1.5 text-sm font-semibold text-white shadow-md disabled:opacity-60 ${confirmClass}`}
+            className={`min-h-11 rounded-xl px-4 py-2 text-sm font-semibold text-white shadow-sm disabled:opacity-60 ${confirmClass}`}
           >
             {busy ? "Working…" : confirmLabel}
           </button>
         </div>
       </div>
-    </div>
+    </Dialog>
   );
 }

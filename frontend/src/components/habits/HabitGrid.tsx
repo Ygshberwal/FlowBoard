@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { habitsApi } from "../../api/habits";
 import type { Habit, HabitStreak, HabitLogsResponse } from "../../types/habit";
+import ContentState from "../ui/ContentState";
 
 interface Props {
   habits: Habit[];
@@ -79,7 +80,7 @@ export default function HabitGrid({ habits, streaks, year }: Props) {
   const [selectedHabit, setSelectedHabit] = useState<string | null>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
 
-  const { data: yearLogsData, isLoading } = useQuery<HabitLogsResponse>({
+  const { data: yearLogsData, isLoading, isError, refetch } = useQuery<HabitLogsResponse>({
     queryKey: ["habit-logs-year", year],
     queryFn: () => habitsApi.getLogsYear(year),
   });
@@ -127,9 +128,9 @@ export default function HabitGrid({ habits, streaks, year }: Props) {
     t.style.left = `${e.clientX + 12}px`;
     t.style.top  = `${e.clientY - 40}px`;
     if (count === 0) {
-      t.innerHTML = `<span class="text-slate-400">${dateStr} · No habits logged</span>`;
+      t.textContent = `${dateStr} · No habits logged`;
     } else {
-      t.innerHTML = `<strong>${dateStr}</strong><br/>${names.join(", ")} · ${count}/${activeHabits.length} done`;
+      t.textContent = `${dateStr} · ${names.join(", ")} · ${count}/${activeHabits.length} done`;
     }
   };
 
@@ -138,12 +139,11 @@ export default function HabitGrid({ habits, streaks, year }: Props) {
     if (t) t.style.display = "none";
   };
 
+  if (isError) {
+    return <ContentState error title="Yearly progress couldn’t load" description="Your history hasn’t been changed. Please try again."><button onClick={() => refetch()} className="btn-primary">Try again</button></ContentState>;
+  }
   if (isLoading) {
-    return (
-      <div className="flex-1 flex items-center justify-center text-slate-400 dark:text-slate-500 text-xs">
-        Loading year data…
-      </div>
-    );
+    return <ContentState loading title="Loading yearly progress…" />;
   }
 
   const totalDaysInYear = (habitId: string) => (yearLogs[habitId] || []).length;
@@ -155,8 +155,9 @@ export default function HabitGrid({ habits, streaks, year }: Props) {
       {/* Habit filter pills */}
       <div className="flex items-center gap-2 flex-wrap">
         <button
+          aria-pressed={selectedHabit === null}
           onClick={() => setSelectedHabit(null)}
-          className={`text-[11px] px-2.5 py-1 rounded-full font-medium border transition-colors ${
+          className={`min-h-11 text-xs px-3 py-2 rounded-xl font-medium border transition-colors ${
             selectedHabit === null
               ? "bg-indigo-600 text-white border-indigo-600"
               : "bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
@@ -166,9 +167,10 @@ export default function HabitGrid({ habits, streaks, year }: Props) {
         </button>
         {habits.map((h) => (
           <button
-            key={h.id}
+              key={h.id}
+              aria-pressed={selectedHabit === h.id}
             onClick={() => setSelectedHabit(selectedHabit === h.id ? null : h.id)}
-            className={`flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full font-medium border transition-colors ${
+            className={`flex min-h-11 items-center gap-1.5 text-xs px-3 py-2 rounded-xl font-medium border transition-colors ${
               selectedHabit === h.id
                 ? "text-white border-transparent"
                 : "bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
@@ -237,8 +239,9 @@ export default function HabitGrid({ habits, streaks, year }: Props) {
                     <div
                       key={di}
                       style={{ width: CELL, height: CELL, backgroundColor: color }}
+                      title={`${cell.toLocaleDateString()} · ${loggedCountForDate(cell)} of ${activeHabits.length} habits checked in${isFuture ? " · Future date" : ""}`}
                       className={`rounded-[2px] transition-transform hover:scale-125 ${
-                        isFuture ? "opacity-30 cursor-default" : "cursor-pointer"
+                        isFuture ? "opacity-30" : ""
                       } ${isToday ? "ring-1 ring-indigo-500 ring-offset-[1px]" : ""}`}
                       onMouseEnter={(e) => !isFuture && showTooltip(e, cell)}
                       onMouseLeave={hideTooltip}
@@ -278,21 +281,24 @@ export default function HabitGrid({ habits, streaks, year }: Props) {
           const streak = streakMap[habit.id];
           const pct    = Math.round((total / daysInYear) * 100);
           return (
-            <div
+            <button
               key={habit.id}
+              type="button"
+              aria-pressed={selectedHabit === habit.id}
+              aria-label={`${habit.name}: ${total} check-ins in ${year}. Filter yearly chart.`}
               onClick={() => setSelectedHabit(selectedHabit === habit.id ? null : habit.id)}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border cursor-pointer transition-colors ${
+              className={`flex min-h-11 w-full flex-wrap items-center gap-3 px-3 py-3 text-left rounded-xl border transition-colors ${
                   selectedHabit === habit.id
                     ? "border-transparent"
                     : "bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 hover:border-slate-200 dark:hover:border-slate-600"
                 }`}
               style={selectedHabit === habit.id ? { backgroundColor: habit.color + "15", borderColor: habit.color + "40" } : {}}
             >
-              <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: habit.color }} />
-              <span className="text-xs font-medium text-slate-700 dark:text-slate-200 w-32 truncate">{habit.name}</span>
+              <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: habit.color }} />
+              <span className="min-w-0 flex-1 text-sm font-medium text-slate-700 dark:text-slate-200 truncate sm:w-32 sm:flex-none">{habit.name}</span>
 
               {/* Mini year bar — one segment per week */}
-              <div className="flex gap-[1px] flex-1 overflow-hidden">
+              <span aria-hidden="true" className="hidden gap-[1px] flex-1 overflow-hidden sm:flex">
                 {Array.from({ length: Math.min(weeks, 53) }).map((_, wi) => {
                   const weekCells = cells.slice(wi * 7, wi * 7 + 7);
                   const pastCells = weekCells.filter((d): d is Date => !!d && d <= today);
@@ -304,14 +310,14 @@ export default function HabitGrid({ habits, streaks, year }: Props) {
                     pastCells.every((d) => (yearLogs[habit.id] || []).includes(dateKey(d)));
                   const level = allLogged ? 4 : someLogged ? 2 : 0;
                   return (
-                    <div
+                    <span
                       key={wi}
                       className="flex-1 h-2 rounded-[1px]"
                       style={{ backgroundColor: shadeColor(habit.color, level), minWidth: 2 }}
                     />
                   );
                 })}
-              </div>
+              </span>
 
               <span className="text-[10px] text-slate-400 dark:text-slate-500 w-16 text-right flex-shrink-0">
                 {total} days · {pct}%
@@ -322,7 +328,7 @@ export default function HabitGrid({ habits, streaks, year }: Props) {
               {streak && streak.longest_streak > 0 && (
                 <span className="text-[10px] text-slate-400 flex-shrink-0">best {streak.longest_streak}d</span>
               )}
-            </div>
+            </button>
           );
         })}
       </div>

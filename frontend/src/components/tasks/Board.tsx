@@ -1,4 +1,4 @@
-import { useState, KeyboardEvent } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { sectionsApi } from "../../api/sections";
 import { tasksApi } from "../../api/tasks";
@@ -7,9 +7,12 @@ import { useAuthStore } from "../../store/authStore";
 import { displayName } from "../../lib/avatar";
 import { orderTasks } from "../../lib/taskOrder";
 import type { SectionWithTasks } from "../../types/section";
-import { format } from "date-fns";
+import { format, isToday, parseISO } from "date-fns";
 import SectionColumn from "./SectionColumn";
 import TaskDetailPanel from "./TaskDetailPanel";
+import ContentState from "../ui/ContentState";
+import ConfirmDialog from "../ui/ConfirmDialog";
+import { toast } from "../../store/toastStore";
 
 export default function Board() {
   const qc = useQueryClient();
@@ -22,6 +25,18 @@ export default function Board() {
   const [sectionDropTargetId, setSectionDropTargetId] = useState<string | null>(null);
   const [addingSection, setAddingSection] = useState(false);
   const [newSectionName, setNewSectionName] = useState("");
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<"all" | "active" | "done" | "today">("all");
+  const [sectionToDelete, setSectionToDelete] = useState<{ id: string; name: string; taskCount: number } | null>(null);
+  const boardRef = useRef<HTMLDivElement>(null);
+  const sectionInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (addingSection) {
+      sectionInputRef.current?.scrollIntoView({ block: "nearest", inline: "nearest" });
+      sectionInputRef.current?.focus();
+    }
+  }, [addingSection]);
   const [collapsed, setCollapsed] = useState<Set<string>>(() => {
     try {
       const raw = localStorage.getItem("flowboard-collapsed-sections");
@@ -41,7 +56,7 @@ export default function Board() {
     });
   };
 
-  const { data: sections = [], isLoading } = useQuery<SectionWithTasks[]>({
+  const { data: sections = [], isLoading, isError, refetch } = useQuery<SectionWithTasks[]>({
     queryKey: ["board"],
     queryFn: sectionsApi.board,
   });
@@ -55,6 +70,7 @@ export default function Board() {
     mutationFn: ({ sectionId, title }: { sectionId: string; title: string }) =>
       tasksApi.create({ title, section_id: sectionId }),
     onSuccess: invalidate,
+    onError: () => toast.error("Could not add your task. Your draft is still here; please try again."),
   });
 
   const moveTaskMutation = useMutation({
@@ -86,6 +102,7 @@ export default function Board() {
     },
     onError: (_e, _v, ctx) => {
       if (ctx?.prev) qc.setQueryData(["board"], ctx.prev);
+      toast.error("Could not move the task. Please try again.");
     },
     onSettled: invalidate,
   });
@@ -106,6 +123,7 @@ export default function Board() {
     },
     onError: (_error, _variables, context) => {
       if (context?.previous) qc.setQueryData(["board"], context.previous);
+      toast.error("Could not reorder tasks. Please try again.");
     },
     onSettled: invalidate,
   });
@@ -113,17 +131,20 @@ export default function Board() {
   const createSectionMutation = useMutation({
     mutationFn: (name: string) => sectionsApi.create({ name }),
     onSuccess: () => { setNewSectionName(""); setAddingSection(false); invalidate(); },
+    onError: () => toast.error("Could not create the section. Please try again."),
   });
 
   const renameSectionMutation = useMutation({
     mutationFn: ({ id, name }: { id: string; name: string }) =>
       sectionsApi.update(id, { name }),
     onSuccess: invalidate,
+    onError: () => toast.error("Could not rename the section. Please try again."),
   });
 
   const deleteSectionMutation = useMutation({
     mutationFn: (id: string) => sectionsApi.delete(id),
-    onSuccess: invalidate,
+    onSuccess: () => { setSectionToDelete(null); invalidate(); },
+    onError: () => toast.error("Could not delete the section. Please try again."),
   });
 
   const reorderSectionMutation = useMutation({
@@ -142,6 +163,7 @@ export default function Board() {
     },
     onError: (_error, _orderedIds, context) => {
       if (context?.previous) qc.setQueryData(["board"], context.previous);
+      toast.error("Could not reorder sections. Please try again.");
     },
     onSettled: invalidate,
   });
@@ -199,60 +221,106 @@ export default function Board() {
   };
 
   const handleDeleteSection = (id: string, name: string, taskCount: number) => {
-    const msg = taskCount > 0
-      ? `Delete section "${name}" and its ${taskCount} task(s)? This cannot be undone.`
-      : `Delete section "${name}"?`;
-    if (window.confirm(msg)) deleteSectionMutation.mutate(id);
-  };
-
-  const handleAddSection = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && newSectionName.trim()) {
-      createSectionMutation.mutate(newSectionName.trim());
-    }
-    if (e.key === "Escape") { setNewSectionName(""); setAddingSection(false); }
+    deleteSectionMutation.reset();
+    setSectionToDelete({ id, name, taskCount });
   };
 
   const totalActive = sections.reduce((n, s) => n + s.tasks.filter((t) => !t.done).length, 0);
   const totalDone = sections.reduce((n, s) => n + s.tasks.filter((t) => t.done).length, 0);
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+  const totalTasks = totalActive + totalDone;
+  const progress = totalTasks ? Math.round(totalDone / totalTasks * 100) : 0;
+  const isFiltered = Boolean(search.trim()) || filter !== "all";
+  const visibleSections = sections.map((section) => ({
+    section,
+    visibleTasks: section.tasks.filter((task) => {
+      const matchesSearch = `${task.title} ${task.category ?? ""} ${section.name}`.toLowerCase().includes(search.trim().toLowerCase());
+      const matchesFilter = filter === "all" || (filter === "active" && !task.done) || (filter === "done" && task.done) || (filter === "today" && !task.done && task.deadline && isToday(parseISO(task.deadline)));
+      return matchesSearch && matchesFilter;
+    }),
+  })).filter(({ visibleTasks }) => !isFiltered || visibleTasks.length > 0);
+  const visibleCount = visibleSections.reduce((count, { visibleTasks }) => count + visibleTasks.length, 0);
+  const clearFilters = () => { setSearch(""); setFilter("all"); };
+  const startSection = () => { clearFilters(); setAddingSection(true); };
+
+  const sectionForm = (
+    <form onSubmit={(event) => {
+      event.preventDefault();
+      if (newSectionName.trim() && !createSectionMutation.isPending) createSectionMutation.mutate(newSectionName.trim());
+    }} className="w-full rounded-2xl border border-indigo-200 bg-white p-4 shadow-card dark:border-indigo-500/40 dark:bg-slate-800">
+      <label htmlFor="section-name" className="mb-2 block text-left text-sm font-semibold text-slate-800 dark:text-slate-100">New section</label>
+      <input ref={sectionInputRef} id="section-name" value={newSectionName} onChange={(event) => setNewSectionName(event.target.value)} maxLength={100} placeholder="e.g. Today or Personal" className="field" required onKeyDown={(event) => {
+        if (event.key === "Escape" && !createSectionMutation.isPending) { setNewSectionName(""); setAddingSection(false); }
+      }} />
+      <div className="mt-3 flex gap-2">
+        <button type="submit" disabled={!newSectionName.trim() || createSectionMutation.isPending} className="btn-primary flex-1">{createSectionMutation.isPending ? "Creating…" : "Add section"}</button>
+        <button type="button" disabled={createSectionMutation.isPending} onClick={() => { setNewSectionName(""); setAddingSection(false); }} className="btn-secondary">Cancel</button>
+      </div>
+    </form>
+  );
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full min-h-[520px] min-w-0 flex-col">
       {/* Header */}
-      <div className="flex-shrink-0 glass border-b border-white/60 dark:border-white/10 px-6 py-3.5 flex items-center gap-4">
-        <div>
-          <h2 className="text-lg font-extrabold text-slate-800 dark:text-white leading-tight">{greeting}, {displayName(user?.username)}</h2>
-          <p className="text-xs text-slate-400 dark:text-slate-500 font-medium">{format(new Date(), "EEEE, MMMM d")}</p>
+      <div className="flex-shrink-0 border-b border-white/60 px-4 py-4 glass dark:border-white/10 sm:px-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="mb-1 text-xs font-medium text-slate-500 dark:text-slate-400">{format(new Date(), "EEEE, MMMM d")}</p>
+            <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-2xl">{greeting}, {displayName(user?.username)}</h1>
+          </div>
+          <button onClick={startSection} disabled={isLoading || isError} className="btn-primary"><span aria-hidden="true">+</span> Add section</button>
         </div>
-        <div className="ml-auto flex items-center gap-2">
-          <div className="flex items-center gap-1.5 rounded-full bg-white/70 dark:bg-white/5 ring-1 ring-slate-200 dark:ring-white/10 px-3 py-1.5">
-            <span className="w-2 h-2 rounded-full bg-indigo-500" />
-            <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">{totalActive} active</span>
+        {totalTasks > 0 && !isError && (
+          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-slate-600 dark:text-slate-400">
+            <span>{totalActive === 0 ? "All tasks complete. Nicely done." : `${totalActive} active · ${totalDone} completed`}</span>
+            <progress aria-label="Completed tasks on your board" value={totalDone} max={totalTasks} className="h-1.5 w-24 overflow-hidden rounded-full accent-indigo-500" />
+            <span className="font-semibold">{progress}% complete</span>
           </div>
-          <div className="flex items-center gap-1.5 rounded-full bg-white/70 dark:bg-white/5 ring-1 ring-slate-200 dark:ring-white/10 px-3 py-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">{totalDone} done</span>
+        )}
+        {sections.length > 0 && !isError && (
+          <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-center">
+            <div className="relative lg:w-72">
+              <svg aria-hidden="true" className="pointer-events-none absolute left-3 top-3.5 h-4 w-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" d="M21 21l-5-5m2-6a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+              <input type="search" aria-label="Search tasks" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search tasks, categories, sections…" className="field pl-9" />
+            </div>
+            <div role="group" aria-label="Filter tasks" className="flex gap-1 rounded-xl bg-slate-200/60 p-1 dark:bg-slate-800">
+              {([{ value: "all", label: "All" }, { value: "active", label: "Active" }, { value: "done", label: "Completed" }, { value: "today", label: "Due today" }] as const).map((item) => (
+                <button key={item.value} aria-pressed={filter === item.value} onClick={() => setFilter(item.value)} className={`min-h-10 flex-1 whitespace-nowrap rounded-lg px-2.5 text-xs font-semibold transition-colors sm:px-3 ${filter === item.value ? "bg-white text-indigo-700 shadow-sm dark:bg-slate-700 dark:text-indigo-200" : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"}`}>{item.label}</button>
+              ))}
+            </div>
+            {isFiltered && <button onClick={clearFilters} className="min-h-10 text-left text-xs font-semibold text-indigo-700 dark:text-indigo-300">Clear filters</button>}
           </div>
-          <div className="flex items-center gap-1.5 rounded-full bg-white/70 dark:bg-white/5 ring-1 ring-slate-200 dark:ring-white/10 px-3 py-1.5">
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">{sections.length} sections</span>
-          </div>
-        </div>
+        )}
       </div>
 
       <div className="flex-1 flex min-h-0">
         {/* Board */}
-        <div className="flex-1 overflow-x-auto overflow-y-hidden">
-          {isLoading ? (
-            <div className="flex items-center justify-center h-full text-slate-400 text-sm">Loading…</div>
-          ) : (
-            <div className="flex gap-4 p-5 h-full items-stretch">
-              {sections.map((section, i) => (
+        <div className="flex min-w-0 flex-1 flex-col">
+          {isLoading ? <ContentState title="Loading your planner…" loading /> : isError ? (
+            <ContentState error title="Your planner couldn’t load" description="Your tasks haven’t been changed. Check your connection and try again."><button onClick={() => refetch()} className="btn-primary">Try again</button></ContentState>
+          ) : sections.length === 0 ? (
+            <ContentState title="Make room for what matters" description="Start with one section, like Today or Personal. Then add a task you’d like to work on.">{addingSection ? sectionForm : <button onClick={startSection} className="btn-primary">Create your first section</button>}</ContentState>
+          ) : isFiltered && visibleCount === 0 ? (
+            <ContentState title="No matching tasks" description={search.trim() ? `No tasks match “${search.trim()}” with this filter. Try a different search or show all tasks.` : "There are no tasks in this view. Choose another filter to see the rest of your board."}><button onClick={clearFilters} className="btn-secondary">Show all tasks</button></ContentState>
+          ) : (<>
+            <div className="flex flex-shrink-0 items-center justify-between gap-2 px-4 pt-3 sm:px-6">
+              <p role="status" className="text-xs text-slate-600 dark:text-slate-400">{isFiltered ? `${visibleCount} matching task${visibleCount === 1 ? "" : "s"}` : "Your board"}<span className="hidden sm:inline"> · {isFiltered ? "Clear filters to rearrange" : "Drag to rearrange, or open a task for details"}</span></p>
+              <div className="flex gap-1">
+                <button aria-label="Scroll board left" onClick={() => boardRef.current?.scrollBy({ left: -300 })} className="flex h-11 w-11 items-center justify-center rounded-lg text-slate-600 hover:bg-white/70 dark:text-slate-300 dark:hover:bg-white/10">←</button>
+                <button aria-label="Scroll board right" onClick={() => boardRef.current?.scrollBy({ left: 300 })} className="flex h-11 w-11 items-center justify-center rounded-lg text-slate-600 hover:bg-white/70 dark:text-slate-300 dark:hover:bg-white/10">→</button>
+              </div>
+            </div>
+            <div ref={boardRef} role="region" aria-label="Task board" tabIndex={0} className="min-h-0 flex-1 snap-x snap-proximity overflow-x-auto overflow-y-hidden">
+            <div className="flex h-full min-w-full items-stretch gap-4 px-4 pb-5 pt-2 sm:px-6">
+              {visibleSections.map(({ section, visibleTasks }) => (
                 <SectionColumn
                   key={section.id}
                   section={section}
-                  index={i}
-                  isCollapsed={collapsed.has(section.id)}
+                  index={sections.findIndex((item) => item.id === section.id)}
+                  visibleTasks={visibleTasks}
+                  isFiltered={isFiltered}
+                  isCollapsed={!isFiltered && collapsed.has(section.id)}
                   onToggleCollapse={() => toggleCollapse(section.id)}
                   isDropTarget={dropTargetId === section.id}
                   draggingTaskId={draggingTaskId}
@@ -268,44 +336,18 @@ export default function Board() {
                   onSectionDragEnd={() => { setDraggingSectionId(null); setSectionDropTargetId(null); }}
                   onDropSection={handleDropSection}
                   onDragOverSection={setSectionDropTargetId}
-                  onAddTask={(sectionId, title) => addTaskMutation.mutate({ sectionId, title })}
+                  onAddTask={(sectionId, title) => addTaskMutation.mutateAsync({ sectionId, title }).then(() => undefined)}
                   onRenameSection={(id, name) => renameSectionMutation.mutate({ id, name })}
                   onDeleteSection={handleDeleteSection}
                 />
               ))}
 
               {/* Add section */}
-              <div className="w-64 flex-shrink-0">
-                {addingSection ? (
-                  <div className="glass rounded-2xl ring-1 ring-indigo-200 shadow-column p-3 animate-scale-in">
-                    <input
-                      autoFocus
-                      value={newSectionName}
-                      onChange={(e) => setNewSectionName(e.target.value)}
-                      onKeyDown={handleAddSection}
-                      onBlur={() => { if (!newSectionName.trim()) setAddingSection(false); }}
-                      placeholder="Section name…"
-                      className="w-full text-sm font-semibold text-slate-700 bg-white rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-200 px-2.5 py-1.5"
-                    />
-                    <div className="flex gap-2 mt-2">
-                      <button
-                        onClick={() => newSectionName.trim() && createSectionMutation.mutate(newSectionName.trim())}
-                        className="flex-1 text-xs font-semibold bg-indigo-600 text-white rounded-lg px-2 py-1.5 hover:bg-indigo-700 transition-colors shadow-sm"
-                      >
-                        Add section
-                      </button>
-                      <button
-                        onClick={() => { setNewSectionName(""); setAddingSection(false); }}
-                        className="text-xs font-semibold bg-slate-100 text-slate-500 rounded-lg px-3 py-1.5 hover:bg-slate-200 transition-colors"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                ) : (
+              {!isFiltered && <div className="w-72 flex-shrink-0 snap-start">
+                {addingSection ? sectionForm : (
                   <button
-                    onClick={() => setAddingSection(true)}
-                    className="group w-full flex items-center justify-center gap-2 text-sm font-semibold text-slate-400 hover:text-indigo-600 bg-white/40 hover:bg-white/80 rounded-2xl border-2 border-dashed border-slate-300 hover:border-indigo-300 px-4 py-3 transition-all duration-200"
+                    onClick={startSection}
+                    className="group min-h-14 w-full flex items-center justify-center gap-2 text-sm font-semibold text-slate-600 hover:text-indigo-600 bg-white/40 hover:bg-white/80 dark:bg-slate-800/40 dark:hover:bg-slate-800 dark:text-slate-400 dark:hover:text-indigo-300 rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-indigo-300 px-4 py-3 transition-colors"
                   >
                     <span className="flex items-center justify-center w-6 h-6 rounded-full bg-slate-200 group-hover:bg-indigo-100 transition-colors">
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -315,14 +357,16 @@ export default function Board() {
                     Add section
                   </button>
                 )}
-              </div>
+              </div>}
             </div>
-          )}
+            </div>
+          </>)}
         </div>
 
         {/* Detail panel */}
-        {selectedTaskId && <TaskDetailPanel taskId={selectedTaskId} />}
+        {selectedTaskId && <TaskDetailPanel key={selectedTaskId} taskId={selectedTaskId} />}
       </div>
+      <ConfirmDialog open={Boolean(sectionToDelete)} title={`Delete “${sectionToDelete?.name}”?`} description={sectionToDelete?.taskCount ? `This also deletes ${sectionToDelete.taskCount} task${sectionToDelete.taskCount === 1 ? "" : "s"} in this section. This cannot be undone.` : "This removes the empty section from your board."} tone="danger" confirmLabel="Delete section" busy={deleteSectionMutation.isPending} error={deleteSectionMutation.isError ? "Could not delete the section. Please try again." : undefined} onCancel={() => setSectionToDelete(null)} onConfirm={() => { if (sectionToDelete) deleteSectionMutation.mutate(sectionToDelete.id); }} />
     </div>
   );
 }

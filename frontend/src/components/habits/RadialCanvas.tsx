@@ -1,6 +1,7 @@
 import { useRef, useEffect, useCallback } from "react";
 import type { Habit } from "../../types/habit";
 import { useHabitStore, isoDate } from "../../store/habitStore";
+import { useThemeStore } from "../../store/themeStore";
 
 interface Props {
   habits: Habit[];
@@ -8,7 +9,7 @@ interface Props {
   serverLogs: Record<string, string[]>;
   year: number;
   month: number;
-  onToggled?: () => void;
+  onToggled?: (habitId: string, date: string) => void;
 }
 
 function getDaysInMonth(year: number, month: number): number {
@@ -42,6 +43,7 @@ export default function RadialCanvas({ habits, logs, serverLogs, year, month, on
   const containerRef = useRef<HTMLDivElement>(null);
   const sizeRef     = useRef(0);
   const { toggleLog } = useHabitStore();
+  const isDark = useThemeStore((state) => state.theme === "dark");
 
   const totalDays = getDaysInMonth(year, month);
 
@@ -167,14 +169,14 @@ export default function RadialCanvas({ habits, logs, serverLogs, year, month, on
     const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillStyle = "#1e293b";
+    ctx.fillStyle = isDark ? "#e2e8f0" : "#1e293b";
     ctx.font = `bold ${Math.round(size * 0.07 * s)}px Inter, sans-serif`;
     ctx.fillText(monthNames[month], cx, cy - size * 0.045 * s);
     ctx.fillStyle = "#94a3b8";
     ctx.font = `${Math.round(size * 0.045 * s)}px Inter, sans-serif`;
     ctx.fillText(String(year), cx, cy + size * 0.045 * s);
 
-  }, [habits, logs, year, month, totalDays, todayDay, maxAllowedDay]);
+  }, [habits, logs, year, month, totalDays, todayDay, maxAllowedDay, isDark]);
 
   // Resize observer — reset transform each time, never stack scale
   useEffect(() => {
@@ -239,10 +241,9 @@ export default function RadialCanvas({ habits, logs, serverLogs, year, month, on
       const habit = habits[hit.habitIndex];
       if (!habit) return;
 
-      await toggleLog(habit.id, hit.day, serverLogs);
-      onToggled?.();
+      if (await toggleLog(habit.id, hit.day, serverLogs)) onToggled?.(habit.id, isoDate(year, month, hit.day));
     },
-    [getHit, habits, toggleLog, serverLogs, maxAllowedDay, onToggled]
+    [getHit, habits, toggleLog, serverLogs, maxAllowedDay, onToggled, year, month]
   );
 
   const handleMouseMove = useCallback(
@@ -262,13 +263,9 @@ export default function RadialCanvas({ habits, logs, serverLogs, year, month, on
       tooltip.style.left = `${e.clientX + 14}px`;
       tooltip.style.top  = `${e.clientY - 36}px`;
 
-      if (isFuture) {
-        tooltip.innerHTML = `<span style="opacity:0.6">${habit.name} · Day ${hit.day} · Future date</span>`;
-      } else {
-        tooltip.innerHTML = `<strong>${habit.name}</strong> · Day ${hit.day} · ${isDone ? "✓ Done — click to undo" : "Click to mark done"}`;
-      }
+      tooltip.textContent = `${habit.name} · Day ${hit.day} · ${isFuture ? "Future date" : isDone ? "✓ Done — click to undo" : "Click to mark done"}`;
     },
-    [getHit, habits, logs, maxAllowedDay]
+    [getHit, habits, logs, maxAllowedDay, year, month]
   );
 
   const handleMouseLeave = useCallback(() => {
@@ -277,11 +274,11 @@ export default function RadialCanvas({ habits, logs, serverLogs, year, month, on
   }, []);
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex min-h-[320px] flex-1 flex-col">
       {/* Hint */}
-      <div className="flex-shrink-0 flex items-center justify-center pt-2 pb-1 gap-3">
-        <span className="text-[10px] text-slate-400 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded-full">
-          Click a ring segment to mark a habit done · Future days are disabled
+      <div className="flex-shrink-0 flex items-center justify-center px-4 pt-2 pb-1 gap-3">
+        <span className="text-center text-xs text-slate-600 dark:text-slate-400">
+          Tap a ring segment to check in. Use Check-in view for a date-by-date list.
         </span>
       </div>
 
@@ -289,11 +286,13 @@ export default function RadialCanvas({ habits, logs, serverLogs, year, month, on
       <div ref={containerRef} className="flex-1 flex items-center justify-center min-h-0 p-2">
         <canvas
           ref={canvasRef}
+          role="img"
+          aria-label={`Monthly habit chart for ${month + 1}/${year}. Use the Check-in view to read or update individual habits with a keyboard.`}
           onClick={handleClick}
           onMouseMove={handleMouseMove}
           onMouseLeave={handleMouseLeave}
           className="cursor-pointer"
-          style={{ touchAction: "none" }}
+          style={{ touchAction: "pan-y" }}
         />
       </div>
 

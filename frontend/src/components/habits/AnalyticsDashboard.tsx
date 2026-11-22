@@ -1,35 +1,39 @@
 import { useQuery } from "@tanstack/react-query";
 import { habitsApi } from "../../api/habits";
 import type { HabitAnalyticsResponse } from "../../types/habit";
+import ContentState from "../ui/ContentState";
 
 interface Props { year: number; month: number; }
 
 export default function AnalyticsDashboard({ year, month }: Props) {
-  const { data, isLoading } = useQuery<HabitAnalyticsResponse>({
+  const { data, isLoading, isError, refetch } = useQuery<HabitAnalyticsResponse>({
     queryKey: ["habit-analytics", year, month],
     queryFn: () => habitsApi.getAnalytics(year, month),
   });
 
+  if (isError) {
+    return <ContentState error title="Insights couldn’t load" description="Check your connection and try again."><button className="btn-primary" onClick={() => refetch()}>Try again</button></ContentState>;
+  }
   if (isLoading || !data) {
-    return <div className="flex-1 flex items-center justify-center text-slate-400 dark:text-slate-500 text-xs">Loading…</div>;
+    return <ContentState loading title="Loading your insights…" />;
   }
 
   const totalCompletions = data.habits.reduce((acc, h) => acc + h.logged_days, 0);
   const bestDays = Math.max(0, ...data.habits.map((h) => h.logged_days));
 
   return (
-    <div className="flex-1 overflow-y-auto p-4">
+    <div className="mx-auto w-full max-w-4xl flex-1 overflow-y-auto p-4 sm:p-6">
+      <h2 className="mb-4 text-lg font-bold text-slate-900 dark:text-white">A look at your consistency</h2>
       {/* Stat cards */}
-      <div className="grid grid-cols-3 gap-3 mb-4">
+      <div className="grid grid-cols-1 gap-3 mb-5 min-[360px]:grid-cols-3">
         {[
-          { label: "Overall", value: `${data.overall_pct}%`, icon: "📊", bg: "bg-indigo-50 text-indigo-700" },
-          { label: "Completions", value: String(totalCompletions), icon: "✅", bg: "bg-emerald-50 text-emerald-700" },
-          { label: "Best habit", value: `${bestDays}d`, icon: "🏆", bg: "bg-amber-50 text-amber-700" },
+          { label: "Completion", value: `${data.overall_pct}%` },
+          { label: "Check-ins", value: String(totalCompletions) },
+          { label: "Most active habit", value: `${bestDays} days` },
         ].map((c) => (
-          <div key={c.label} className={`rounded-lg px-3 py-2.5 ${c.bg}`}>
-            <div className="text-base mb-0.5">{c.icon}</div>
-            <div className="text-lg font-bold leading-none">{c.value}</div>
-            <div className="text-[10px] font-medium opacity-70 mt-0.5">{c.label}</div>
+          <div key={c.label} className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-card dark:border-slate-700 dark:bg-slate-800">
+            <div className="text-xl font-bold text-slate-900 dark:text-white">{c.value}</div>
+            <div className="mt-1 text-xs font-medium text-slate-600 dark:text-slate-400">{c.label}</div>
           </div>
         ))}
       </div>

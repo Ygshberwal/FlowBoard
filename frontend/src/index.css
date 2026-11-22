@@ -31,6 +31,31 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
+  :root {
+    --surface: #ffffff;
+    --text: #0f172a;
+    --border: #e2e8f0;
+    --focus: #6366f1;
+    color-scheme: light;
+  }
+
+  html.dark {
+    --surface: #0f172a;
+    --text: #e2e8f0;
+    --border: #334155;
+    --focus: #a5b4fc;
+    color-scheme: dark;
+  }
+
+  :where(a, button, input, textarea, select, summary, [tabindex]):focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 3px;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+  }
+
   html.dark body {
     color: #e2e8f0;
     background-color: #0b1120;
@@ -69,6 +94,170 @@
   ::-webkit-scrollbar-thumb:hover {
     background: rgba(100, 116, 139, 0.7);
     background-clip: padding-box;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700 disabled:opacity-50 dark:bg-indigo-500 dark:hover:bg-indigo-600;
+  }
+
+  .btn-secondary {
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700;
+  }
+
+  .field {
+    @apply min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-400;
+  }
+
+  .app-dialog {
+    margin: auto;
+    width: min(28rem, calc(100% - 2rem));
+    max-height: calc(100dvh - 2rem);
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: 0 24px 64px rgb(15 23 42 / 20%);
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
+
+  .app-dialog[open] {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .app-dialog::backdrop {
+    background: rgb(15 23 42 / 40%);
+    backdrop-filter: blur(3px);
+  }
+
+  .app-panel {
+    height: calc(100dvh - 2rem);
+  }
+
+  progress {
+    appearance: none;
+    border: 0;
+    background: var(--border);
+  }
+
+  progress::-webkit-progress-bar {
+    background: var(--border);
+    border-radius: 999px;
+  }
+
+  progress::-webkit-progress-value {
+    background: #6366f1;
+    border-radius: 999px;
+  }
+
+  progress::-moz-progress-bar {
+    background: #6366f1;
+    border-radius: 999px;
+  }
+
+  .habit-progress::-webkit-progress-value {
+    transition: width 220ms ease, background-color 180ms ease;
+  }
+
+  .habit-progress::-moz-progress-bar {
+    transition: background-color 180ms ease;
+  }
+
+  .habit-progress[data-complete="true"]::-webkit-progress-value {
+    background: #059669;
+  }
+
+  .habit-progress[data-complete="true"]::-moz-progress-bar {
+    background: #059669;
+  }
+
+  .habit-checkin-success {
+    animation: habit-saved 650ms ease-out;
+  }
+
+  .habit-checkin-pop, .habit-day-badge {
+    animation: habit-pop 420ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .habit-checkin-stroke {
+    stroke-dasharray: 22;
+    animation: habit-checkmark 320ms ease-out both;
+  }
+
+  .habit-confetti {
+    position: absolute;
+    inset: 0 0 auto;
+    z-index: 1;
+    height: 220px;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  .habit-confetti-piece {
+    position: absolute;
+    top: -12px;
+    width: 6px;
+    height: 10px;
+    border-radius: 2px;
+    animation: habit-confetti-fall 1500ms ease-out both;
+  }
+
+  @media (min-width: 768px) {
+    .app-panel[open] {
+      position: relative;
+      inset: auto;
+      margin: 0;
+      flex-shrink: 0;
+      width: 22rem;
+      height: 100%;
+      max-height: none;
+      border-radius: 0;
+      border-width: 0 0 0 1px;
+    }
+  }
+}
+
+@keyframes habit-saved {
+  0% { box-shadow: 0 0 0 0 rgb(16 185 129 / 25%); }
+  55% { box-shadow: 0 0 0 5px rgb(16 185 129 / 10%); }
+  100% { box-shadow: 0 0 0 8px rgb(16 185 129 / 0%); }
+}
+
+@keyframes habit-pop {
+  0% { transform: scale(0.85); }
+  50% { transform: scale(1.14); }
+  100% { transform: scale(1); }
+}
+
+@keyframes habit-checkmark {
+  from { stroke-dashoffset: 22; }
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes habit-confetti-fall {
+  0% { opacity: 0; transform: translate3d(0, 0, 0) rotate(0deg); }
+  15% { opacity: 0.9; }
+  100% { opacity: 0; transform: translate3d(var(--confetti-drift), 220px, 0) rotate(var(--confetti-spin)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .habit-confetti {
+    display: none;
+  }
+
+  .habit-checkin-success, .habit-checkin-pop, .habit-day-badge, .habit-checkin-stroke {
+    animation: none;
+  }
+
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 

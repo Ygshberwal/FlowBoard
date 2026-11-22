@@ -44,8 +44,8 @@ export interface TaskUpdate {
   priority?: TaskPriority;
   sort_order?: number | null;
   category?: string;
-  estimated_mins?: number;
-  deadline?: string;
+  estimated_mins?: number | null;
+  deadline?: string | null;
   scheduled_for?: string;
   done?: boolean;
 }

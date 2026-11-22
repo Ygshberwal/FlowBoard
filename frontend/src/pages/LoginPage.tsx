@@ -47,7 +47,7 @@ export default function LoginPage() {
       if (axios.isAxiosError(err) && err.response?.status === 401) {
         setError("Invalid username/email or password.");
       } else if (axios.isAxiosError(err) && !err.response) {
-        setError("Can't reach the server. Please try again.");
+        setError("Can't reach the server. Please try again. Try visiting the <a href='https://flowboard-backend-v65t.onrender.com/api/health'>Backend</a> to see if it's down.");
       } else {
         setError("Something went wrong. Please try again.");
       }
