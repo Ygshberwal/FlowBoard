@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime, timedelta, timezone
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -63,11 +64,16 @@ async def toggle_log(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    from datetime import timezone, datetime
-    today = datetime.now(timezone.utc).date()
+    # Habit dates are calendar days in the caller's timezone. UTC may still be
+    # yesterday after their local midnight (or tomorrow west of UTC).
+    today = (
+        datetime.now(timezone.utc) - timedelta(minutes=data.timezone_offset_minutes)
+    ).date()
     if data.date > today:
         raise HTTPException(status_code=400, detail="Cannot log a future date")
-    logged = await habit_service.toggle_log(db, habit_id, current_user.id, data.date)
+    logged = await habit_service.toggle_log(
+        db, habit_id, current_user.id, data.date, today=today
+    )
     if logged is None:
         raise HTTPException(status_code=404, detail="Habit not found")
     return {"logged": logged, "date": data.date.isoformat()}

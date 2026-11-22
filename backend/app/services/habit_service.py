@@ -96,7 +96,8 @@ async def archive_habit(
 
 
 async def toggle_log(
-    db: AsyncSession, habit_id: uuid.UUID, user_id: uuid.UUID, log_date: date
+    db: AsyncSession, habit_id: uuid.UUID, user_id: uuid.UUID, log_date: date,
+    *, today: date | None = None,
 ) -> Optional[bool]:
     habit = await get_habit(db, habit_id, user_id)
     if not habit:
@@ -118,7 +119,7 @@ async def toggle_log(
         logged = True
 
     await db.flush()
-    await _update_streak(db, habit_id, user_id)
+    await _update_streak(db, habit_id, user_id, today=today)
     return logged
 
 
@@ -177,7 +178,8 @@ async def get_streaks(db: AsyncSession, user_id: uuid.UUID) -> List[Dict[str, An
 
 
 async def _update_streak(
-    db: AsyncSession, habit_id: uuid.UUID, user_id: uuid.UUID
+    db: AsyncSession, habit_id: uuid.UUID, user_id: uuid.UUID,
+    *, today: date | None = None,
 ):
     result = await db.execute(
         select(HabitLog.logged_on)
@@ -191,7 +193,7 @@ async def _update_streak(
         longest = 0
         last_logged = None
     else:
-        today = datetime.now(timezone.utc).date()
+        today = today or datetime.now(timezone.utc).date()
         current = 0
         check = today
         for d in all_dates:

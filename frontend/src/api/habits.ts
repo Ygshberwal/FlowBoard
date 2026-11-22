@@ -29,7 +29,10 @@ export const habitsApi = {
   },
 
   toggleLog: async (habitId: string, date: string): Promise<{ logged: boolean; date: string }> => {
-    const { data } = await apiClient.post(`/api/habits/${habitId}/logs`, { date });
+    const { data } = await apiClient.post(`/api/habits/${habitId}/logs`, {
+      date,
+      timezone_offset_minutes: new Date().getTimezoneOffset(),
+    });
     return data;
   },
 

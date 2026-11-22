@@ -2,7 +2,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, date
 from typing import Optional, Dict, List
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class HabitBase(BaseModel):
@@ -33,6 +33,9 @@ class HabitOut(HabitBase):
 
 class HabitLogToggle(BaseModel):
     date: date
+    # Same sign convention as JavaScript Date.getTimezoneOffset(): UTC - local.
+    # UTC remains the default for older clients that do not send this field.
+    timezone_offset_minutes: int = Field(default=0, ge=-840, le=840)
 
 
 class HabitStreakOut(BaseModel):
