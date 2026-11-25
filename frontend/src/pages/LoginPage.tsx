@@ -19,6 +19,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [serverUnavailable, setServerUnavailable] = useState(false);
 
   const from =
     (location.state as LocationState | null)?.from?.pathname || "/planner";
@@ -26,6 +27,7 @@ export default function LoginPage() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    setServerUnavailable(false);
     if (!identifier.trim() || !password) {
       setError("Please enter your username/email and password.");
       return;
@@ -47,7 +49,8 @@ export default function LoginPage() {
       if (axios.isAxiosError(err) && err.response?.status === 401) {
         setError("Invalid username/email or password.");
       } else if (axios.isAxiosError(err) && !err.response) {
-        setError("Can't reach the server. Please try again. Try visiting the <a href='https://flowboard-backend-v65t.onrender.com/api/health'>Backend</a> to see if it's down.");
+        setError("Can't reach the server. Please try again.");
+        setServerUnavailable(true);
       } else {
         setError("Something went wrong. Please try again.");
       }
@@ -121,7 +124,7 @@ export default function LoginPage() {
               role="alert"
               className="text-sm text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-500/10 rounded-lg px-3 py-2"
             >
-              {error}
+              {error}{serverUnavailable && <> Visit the <a href="https://flowboard-backend-v65t.onrender.com/api/health" target="_blank" rel="noreferrer" className="font-semibold underline">backend health page</a> to check its status.</>}
             </div>
           )}
 
