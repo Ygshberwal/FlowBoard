@@ -3,8 +3,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { sectionsApi } from "../../api/sections";
 import { tasksApi } from "../../api/tasks";
 import { useTaskStore } from "../../store/taskStore";
-import { useAuthStore } from "../../store/authStore";
-import { displayName } from "../../lib/avatar";
 import { orderTasks } from "../../lib/taskOrder";
 import type { SectionWithTasks } from "../../types/section";
 import { format, isToday, parseISO } from "date-fns";
@@ -17,7 +15,6 @@ import { toast } from "../../store/toastStore";
 export default function Board() {
   const qc = useQueryClient();
   const { selectedTaskId } = useTaskStore();
-  const user = useAuthStore((s) => s.user);
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
   const [taskDropTargetId, setTaskDropTargetId] = useState<string | null>(null);
   const [draggingSectionId, setDraggingSectionId] = useState<string | null>(null);
@@ -26,10 +23,12 @@ export default function Board() {
   const [addingSection, setAddingSection] = useState(false);
   const [newSectionName, setNewSectionName] = useState("");
   const [search, setSearch] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
   const [filter, setFilter] = useState<"all" | "active" | "done" | "today">("all");
   const [sectionToDelete, setSectionToDelete] = useState<{ id: string; name: string; taskCount: number } | null>(null);
   const boardRef = useRef<HTMLDivElement>(null);
   const sectionInputRef = useRef<HTMLInputElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (addingSection) {
@@ -37,6 +36,7 @@ export default function Board() {
       sectionInputRef.current?.focus();
     }
   }, [addingSection]);
+  useEffect(() => { if (searchOpen) searchInputRef.current?.focus(); }, [searchOpen]);
   const [collapsed, setCollapsed] = useState<Set<string>>(() => {
     try {
       const raw = localStorage.getItem("flowboard-collapsed-sections");
@@ -227,8 +227,6 @@ export default function Board() {
 
   const totalActive = sections.reduce((n, s) => n + s.tasks.filter((t) => !t.done).length, 0);
   const totalDone = sections.reduce((n, s) => n + s.tasks.filter((t) => t.done).length, 0);
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
   const totalTasks = totalActive + totalDone;
   const progress = totalTasks ? Math.round(totalDone / totalTasks * 100) : 0;
   const isFiltered = Boolean(search.trim()) || filter !== "all";
@@ -263,35 +261,31 @@ export default function Board() {
   return (
     <div className="flex h-full min-h-[520px] min-w-0 flex-col">
       {/* Header */}
-      <div className="flex-shrink-0 border-b border-white/60 px-4 py-4 glass dark:border-white/10 sm:px-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="min-w-0">
-            <p className="mb-1 text-xs font-medium text-slate-500 dark:text-slate-400">{format(new Date(), "EEEE, MMMM d")}</p>
-            <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-2xl">{greeting}, {displayName(user?.username)}</h1>
-          </div>
-          <button onClick={startSection} disabled={isLoading || isError} className="btn-primary"><span aria-hidden="true">+</span> Add section</button>
-        </div>
-        {totalTasks > 0 && !isError && (
-          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-slate-600 dark:text-slate-400">
-            <span>{totalActive === 0 ? "All tasks complete. Nicely done." : `${totalActive} active · ${totalDone} completed`}</span>
-            <progress aria-label="Completed tasks on your board" value={totalDone} max={totalTasks} className="h-1.5 w-24 overflow-hidden rounded-full accent-indigo-500" />
-            <span className="font-semibold">{progress}% complete</span>
-          </div>
-        )}
+       <div className="flex-shrink-0 border-b border-white/60 px-4 py-1 glass dark:border-white/10 sm:px-6">
+         <div className="flex flex-wrap items-center gap-3">
+         <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5 text-xs text-slate-600 dark:text-slate-400">
+           <span className="font-medium text-slate-500 dark:text-slate-400">{format(new Date(), "EEEE, MMMM d")}</span>
+           <span className="flex flex-wrap items-center gap-x-2">
+            {totalTasks > 0 && !isError && <>
+             <span>{totalActive} active · {totalDone} completed</span>
+             <progress aria-label="Completed tasks on your board" value={totalDone} max={totalTasks} className="h-1.5 w-20 overflow-hidden rounded-full accent-indigo-500" />
+             <span className="font-semibold">{progress}%</span>
+            </>}
+           </span>
+         </div>
         {sections.length > 0 && !isError && (
-          <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-center">
-            <div className="relative lg:w-72">
-              <svg aria-hidden="true" className="pointer-events-none absolute left-3 top-3.5 h-4 w-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" d="M21 21l-5-5m2-6a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-              <input type="search" aria-label="Search tasks" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search tasks, categories, sections…" className="field pl-9" />
-            </div>
+          <div className="flex items-center gap-2">
             <div role="group" aria-label="Filter tasks" className="flex gap-1 rounded-xl bg-slate-200/60 p-1 dark:bg-slate-800">
               {([{ value: "all", label: "All" }, { value: "active", label: "Active" }, { value: "done", label: "Completed" }, { value: "today", label: "Due today" }] as const).map((item) => (
                 <button key={item.value} aria-pressed={filter === item.value} onClick={() => setFilter(item.value)} className={`min-h-10 flex-1 whitespace-nowrap rounded-lg px-2.5 text-xs font-semibold transition-colors sm:px-3 ${filter === item.value ? "bg-white text-indigo-700 shadow-sm dark:bg-slate-700 dark:text-indigo-200" : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"}`}>{item.label}</button>
               ))}
             </div>
+            {searchOpen ? <input ref={searchInputRef} type="search" aria-label="Search tasks" value={search} onChange={(event) => setSearch(event.target.value)} onBlur={() => { if (!search) setSearchOpen(false); }} placeholder="Search tasks…" className="field w-48" /> : <button type="button" aria-label="Search tasks" onClick={() => setSearchOpen(true)} className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-slate-700"><svg aria-hidden="true" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" d="M21 21l-5-5m2-6a7 7 0 11-14 0 7 7 0 0114 0z" /></svg></button>}
             {isFiltered && <button onClick={clearFilters} className="min-h-10 text-left text-xs font-semibold text-indigo-700 dark:text-indigo-300">Clear filters</button>}
           </div>
         )}
+        <button onClick={startSection} disabled={isLoading || isError} className="btn-primary flex-shrink-0"><span aria-hidden="true">+</span> Add section</button>
+        </div>
       </div>
 
       <div className="flex-1 flex min-h-0">
@@ -304,15 +298,15 @@ export default function Board() {
           ) : isFiltered && visibleCount === 0 ? (
             <ContentState title="No matching tasks" description={search.trim() ? `No tasks match “${search.trim()}” with this filter. Try a different search or show all tasks.` : "There are no tasks in this view. Choose another filter to see the rest of your board."}><button onClick={clearFilters} className="btn-secondary">Show all tasks</button></ContentState>
           ) : (<>
-            <div className="flex flex-shrink-0 items-center justify-between gap-2 px-4 pt-3 sm:px-6">
+            <div className="flex flex-shrink-0 items-center justify-between gap-2 px-4 pt-1 sm:px-6">
               <p role="status" className="text-xs text-slate-600 dark:text-slate-400">{isFiltered ? `${visibleCount} matching task${visibleCount === 1 ? "" : "s"}` : "Your board"}<span className="hidden sm:inline"> · {isFiltered ? "Clear filters to rearrange" : "Drag to rearrange, or open a task for details"}</span></p>
               <div className="flex gap-1">
-                <button aria-label="Scroll board left" onClick={() => boardRef.current?.scrollBy({ left: -300 })} className="flex h-11 w-11 items-center justify-center rounded-lg text-slate-600 hover:bg-white/70 dark:text-slate-300 dark:hover:bg-white/10">←</button>
-                <button aria-label="Scroll board right" onClick={() => boardRef.current?.scrollBy({ left: 300 })} className="flex h-11 w-11 items-center justify-center rounded-lg text-slate-600 hover:bg-white/70 dark:text-slate-300 dark:hover:bg-white/10">→</button>
+                <button aria-label="Scroll board left" onClick={() => boardRef.current?.scrollBy({ left: -300 })} className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-600 hover:bg-white/70 dark:text-slate-300 dark:hover:bg-white/10">←</button>
+                <button aria-label="Scroll board right" onClick={() => boardRef.current?.scrollBy({ left: 300 })} className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-600 hover:bg-white/70 dark:text-slate-300 dark:hover:bg-white/10">→</button>
               </div>
             </div>
             <div ref={boardRef} role="region" aria-label="Task board" tabIndex={0} className="min-h-0 flex-1 snap-x snap-proximity overflow-x-auto overflow-y-hidden">
-            <div className="flex h-full min-w-full items-stretch gap-4 px-4 pb-5 pt-2 sm:px-6">
+            <div className="flex h-full min-w-full items-stretch gap-3 px-4 pb-4 pt-1 sm:px-6">
               {visibleSections.map(({ section, visibleTasks }) => (
                 <SectionColumn
                   key={section.id}
@@ -343,7 +337,7 @@ export default function Board() {
               ))}
 
               {/* Add section */}
-              {!isFiltered && <div className="w-72 flex-shrink-0 snap-start">
+              {!isFiltered && <div className="w-[260px] flex-shrink-0 snap-start">
                 {addingSection ? sectionForm : (
                   <button
                     onClick={startSection}

@@ -122,6 +122,11 @@ export default function HabitModule() {
   const daySaving = habits.some((habit) => pendingLogs[`${habit.id}::${selectedDate}`]);
   const allComplete = completed === habits.length && habits.length > 0 && !daySaving;
   const goToToday = () => { setViewDate(today.getFullYear(), today.getMonth()); setSelectedDay(today.getDate()); };
+  const shiftTimeline = (amount: number) => {
+    if (activeTab === "grid") setViewDate(viewYear + amount, viewMonth);
+    else if (amount < 0) prevMonth();
+    else nextMonth();
+  };
   const streakMap = new Map(streaks.map((streak) => [streak.habit_id, streak]));
   feedbackContext.current = { date: selectedDate, month: monthPrefix, view: activeTab };
 
@@ -175,22 +180,18 @@ export default function HabitModule() {
   return (
     <div className="flex h-full min-w-0 flex-col">
       <p role="status" aria-live="polite" aria-atomic="true" className="sr-only">{feedbackMessage}</p>
-      <div className="flex-shrink-0 space-y-4 border-b border-white/60 px-4 py-4 glass dark:border-white/10 sm:px-6">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-2xl">Small steps, lasting habits</h1>
-            <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">A little consistency goes a long way.</p>
-          </div>
-          <button onClick={() => setShowAddForm(true)} className="btn-primary flex-shrink-0"><span aria-hidden="true">+</span> Add habit</button>
-        </div>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div role="group" aria-label="Habit view" className="flex w-full gap-1 rounded-xl bg-slate-200/60 p-1 dark:bg-slate-800 sm:w-auto">
+      <div className="flex-shrink-0 border-b border-white/60 px-4 py-1 glass dark:border-white/10 sm:px-6">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div role="group" aria-label="Habit view" className="flex gap-1 rounded-xl bg-slate-200/60 p-1 dark:bg-slate-800">
             {VIEWS.map((tab) => <button key={tab.value} aria-pressed={activeTab === tab.value} onClick={() => setActiveTab(tab.value)} className={`min-h-10 flex-1 whitespace-nowrap rounded-lg px-3 text-xs font-semibold transition-colors sm:flex-none ${activeTab === tab.value ? "bg-white text-indigo-700 shadow-sm dark:bg-slate-700 dark:text-indigo-200" : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"}`}>{tab.label}</button>)}
           </div>
           <div className="flex items-center gap-1">
-            <button onClick={prevMonth} aria-label="Previous month" className="flex h-11 w-11 items-center justify-center rounded-xl text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-slate-800">←</button>
-            <span aria-live="polite" className="w-28 text-center text-sm font-semibold text-slate-700 dark:text-slate-200">{format(new Date(viewYear, viewMonth, 1), "MMM yyyy")}</span>
-            <button onClick={nextMonth} aria-label="Next month" className="flex h-11 w-11 items-center justify-center rounded-xl text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-slate-800">→</button>
+          {activeTab !== "checkin" && <div className="flex items-center gap-1">
+            <button onClick={() => shiftTimeline(-1)} aria-label={activeTab === "grid" ? "Previous year" : "Previous month"} className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-slate-800">←</button>
+            <span aria-live="polite" className="w-28 text-center text-sm font-semibold text-slate-700 dark:text-slate-200">{activeTab === "grid" ? viewYear : format(new Date(viewYear, viewMonth, 1), "MMM yyyy")}</span>
+            <button onClick={() => shiftTimeline(1)} aria-label={activeTab === "grid" ? "Next year" : "Next month"} className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-slate-800">→</button>
+          </div>}
+          <button onClick={() => setShowAddForm(true)} className="btn-primary flex-shrink-0"><span aria-hidden="true">+</span> Add habit</button>
           </div>
         </div>
       </div>

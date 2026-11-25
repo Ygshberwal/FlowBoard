@@ -26,7 +26,7 @@ export default function TopNav() {
   });
 
   return (
-    <header className="relative z-20 flex flex-shrink-0 flex-wrap items-center gap-x-4 gap-y-2 border-b border-white/60 px-4 py-3 glass dark:border-white/10 sm:flex-nowrap sm:gap-8 sm:px-6">
+    <header className="relative z-20 flex flex-shrink-0 flex-wrap items-center gap-x-4 gap-y-2 border-b border-white/60 px-4 py-2 glass dark:border-white/10 sm:flex-nowrap sm:gap-8 sm:px-6">
       {/* Logo */}
       <div className="flex items-center gap-2.5">
         <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-md shadow-indigo-500/30">

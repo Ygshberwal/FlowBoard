@@ -163,7 +163,7 @@ export default function SectionColumn({
   return (
     <div
       {...dragProps}
-      className={`flex w-[calc(100vw-3rem)] min-w-[260px] max-w-[340px] flex-shrink-0 snap-start flex-col rounded-2xl overflow-hidden sm:w-80
+      className={`flex w-[260px] min-w-[260px] max-w-[260px] flex-shrink-0 snap-start flex-col rounded-2xl overflow-hidden
         transition-all duration-200 ease-spring animate-fade-in-up
         ${isDropTarget
           ? `${theme.dropBg} dark:bg-white/10 ring-2 ${theme.ring} shadow-column`
@@ -181,7 +181,7 @@ export default function SectionColumn({
           onSectionDragStart(section.id);
         }}
         onDragEnd={onSectionDragEnd}
-        className={`flex items-center gap-1.5 px-3.5 pt-3 pb-2 cursor-grab active:cursor-grabbing ${isSectionDropTarget ? "bg-indigo-50/70 dark:bg-indigo-950/20" : ""}`}
+        className={`flex items-center gap-1.5 px-2.5 pt-2 pb-1 cursor-grab active:cursor-grabbing ${isSectionDropTarget ? "bg-indigo-50/70 dark:bg-indigo-950/20" : ""}`}
         title="Drag to rearrange section"
       >
         <button
@@ -237,7 +237,7 @@ export default function SectionColumn({
       </div>
 
       {/* Cards */}
-      <div className="flex-1 overflow-y-auto px-2.5 pb-2 space-y-2 min-h-[60px]">
+      <div className="flex-1 overflow-y-auto px-2 pb-2 space-y-1.5 min-h-[60px]">
         {section.tasks.length === 0 ? (
           <button
             type="button"

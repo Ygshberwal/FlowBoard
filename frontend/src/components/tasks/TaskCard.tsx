@@ -102,7 +102,7 @@ export default function TaskCard({ task, dragEnabled = true, onDragStart, onDrag
       {/* Priority accent bar */}
       <div className={`w-1 flex-shrink-0 ${task.done ? "bg-slate-200" : PRIORITY_BAR[task.priority]}`} />
 
-      <div className="flex-1 min-w-0 px-2 py-2">
+      <div className="flex-1 min-w-0 px-2 py-1.5">
         <div className="flex items-start gap-1">
           {/* Checkbox */}
           <button
@@ -110,7 +110,7 @@ export default function TaskCard({ task, dragEnabled = true, onDragStart, onDrag
             aria-label={`${task.done ? "Mark incomplete" : "Complete"}: ${task.title}`}
             aria-pressed={task.done}
             disabled={toggleMutation.isPending}
-            className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg disabled:opacity-50"
+            className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg disabled:opacity-50"
           >
             <span className={`h-5 w-5 rounded-full border-2 flex items-center justify-center transition-colors ${
               task.done
@@ -127,7 +127,7 @@ export default function TaskCard({ task, dragEnabled = true, onDragStart, onDrag
           </button>
 
           {/* Title */}
-          <button onClick={() => selectTask(isSelected ? null : task.id)} aria-label={`Open task: ${task.title}`} aria-expanded={isSelected} className={`min-h-11 min-w-0 flex-1 rounded-lg py-2.5 pr-2 text-left text-sm font-medium leading-snug break-words ${
+          <button onClick={() => selectTask(isSelected ? null : task.id)} aria-label={`Open task: ${task.title}`} aria-expanded={isSelected} className={`min-h-10 min-w-0 flex-1 rounded-lg py-2 pr-2 text-left text-sm font-medium leading-snug break-words ${
             task.done ? "line-through text-slate-500 dark:text-slate-400" : "text-slate-800 dark:text-slate-100"
           }`}>
             {task.title}
